@@ -1,18 +1,23 @@
 ;*** window program - by Craig Bruce - 21-Feb-94
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@0:window"
+!src "../system/acehead.s"
+!to "../../build/window", cbm
+
+*= aceAppAddress
 
 jmp main
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 scanVal = $20
-rows .buf 1
-cols .buf 1
-startRow .buf 1
-startCol .buf 1
+rows = *
+   !fill 1
+cols = *
+   !fill 1
+startRow = *
+   !fill 1
+startCol = *
+   !fill 1
 
 ;===window===
 
@@ -38,8 +43,8 @@ usage = *
    jmp winParms
 
 usageMsg = *
-   .asc "usage: window columns [rows [startColumn [startRow]]]"
-   .byte chrCR,0
+   !pet "usage: window columns [rows [startColumn [startRow]]]"
+   !byte chrCR,0
 
 enoughArgs = *
    lda #1
@@ -111,8 +116,8 @@ mainError = *
    ldy #>mainErrorMsg
    jmp eputs
 mainErrorMsg = *
-   .asc "winset: invalid window parameters"
-   .byte chrCR,0
+   !pet "winset: invalid window parameters"
+   !byte chrCR,0
 
 ;******** standard library ********
 
@@ -143,7 +148,8 @@ putc = *
    lda #1
    ldy #0
    jmp write
-   putcBuffer .buf 1
+   putcBuffer = *
+      !fill 1
 
 getchar = *
    ldx #stdin
@@ -160,9 +166,11 @@ getc = *
    rts
 +  sec
    rts
-   getcBuffer .buf 1
+   getcBuffer = *
+      !fill 1
 
-numbuf .buf 11
+numbuf = *
+   !fill 11
 
 putnum = *
    sta $30
@@ -206,11 +214,16 @@ getarg = *
    ora zp+0
    rts
 
-scanDigit .buf 1
-scanSave .buf 4
-scanTemp .buf 1
-scanIndex .buf 1
-scanAnything .buf 1
+scanDigit = *
+   !fill 1
+scanSave = *
+   !fill 4
+scanTemp = *
+   !fill 1
+scanIndex = *
+   !fill 1
+scanAnything = *
+   !fill 1
 
 scanNum = *  ;( (zp)=numStr ) : .Y=scan, [scanVal]=num, .CS=err
    ldy #0
@@ -239,7 +252,7 @@ scanNum = *  ;( (zp)=numStr ) : .Y=scan, [scanVal]=num, .CS=err
    beq scanError
    clc
    rts
-+  and #$0f
+++ and #$0f
    sta scanDigit
    lda #$ff
    sta scanAnything
@@ -252,7 +265,7 @@ scanNum = *  ;( (zp)=numStr ) : .Y=scan, [scanVal]=num, .CS=err
    bpl -
    lda #2
    sta scanIndex
--  clc
+-- clc
    ldy #4
    ldx #0
 -  rol scanVal,x
