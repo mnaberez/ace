@@ -5,13 +5,15 @@
 ;Kevin's ARchiver format, created by Kevin Phillips and Craig Bruce, 1991
 ;line length limited to 250 characters
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@0:unkar"
+!src "../system/acehead.s"
+!to "../../build/unkar", cbm
+!convtab pet
+
+*= aceAppAddress
 
 jmp main
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 ;*** global declarations
 
@@ -54,8 +56,8 @@ die = *
    jmp aceProcExit
 
 tpaMsg = *
-   .asc "Insufficient program space to run more"
-   .byte chrCR,0
+   !pet "Insufficient program space to run more"
+   !byte chrCR,0
 
 usage = *
    lda #<usageMsg
@@ -64,8 +66,8 @@ usage = *
    jmp die
 
 usageMsg = *
-   .asc "usage: unkar [-help] file ..."
-   .byte chrCR,0
+   !pet "usage: unkar [-help] file ..."
+   !byte chrCR,0
 
 mainInit = *
    lda #0
@@ -106,8 +108,8 @@ checkStop = *
    jmp die
 
    stoppedMsg = *
-   .asc "<Stopped>"
-   .byte chrCR,0
+   !pet "<Stopped>"
+   !byte chrCR,0
 
 unkar = *
    jsr echo
@@ -131,8 +133,8 @@ unkar = *
    rts
 
 invalidFormatMsg = *
-   .asc ": invalid KAR file format"
-   .byte chrCR,0
+   !pet ": invalid KAR file format"
+   !byte chrCR,0
 invalidFormat = *
    lda name+0
    ldy name+1
@@ -220,8 +222,8 @@ unkarBody = *
    jmp unkarNextLine
 
    cannotOpenMsg = *
-   .asc ": cannot open for writing"
-   .byte chrCR,0
+   !pet ": cannot open for writing"
+   !byte chrCR,0
 
 dec32 = *
    clc
@@ -245,10 +247,10 @@ echo = *
    ldy #>echoMsg2
    jmp eputs
 echoMsg1 = *
-   .asc "unkaring file "
-   .byte chrQUOTE,0
+   !pet "unkaring file "
+   !byte chrQUOTE,0
 echoMsg2 = *
-   .byte chrQUOTE,chrCR,0
+   !byte chrQUOTE,chrCR,0
 
 echoExtract = *
    lda #<echoExtractMsg1
@@ -261,10 +263,10 @@ echoExtract = *
    ldy #>echoExtractMsg2
    jmp eputs
 echoExtractMsg1 = *
-   .asc "extracting file "
-   .byte chrQUOTE,0
+   !pet "extracting file "
+   !byte chrQUOTE,0
 echoExtractMsg2 = *
-   .byte chrQUOTE,chrCR,0
+   !byte chrQUOTE,chrCR,0
 
 ;=== standard library ===
 
@@ -298,7 +300,8 @@ putc = *
    lda #1
    ldy #0
    jmp write
-   putcBuffer .buf 1
+   putcBuffer = *
+      !fill 1
 
 getarg = *
    sty zp+1
@@ -356,8 +359,8 @@ getline = *  ;( ) : line, .Y=lineLen, .CS=eof
    jmp getlineExit
 
    getlineTooLongMsg = *
-   .asc "unkar: line too long, truncating"
-   .byte chrCR,0
+   !pet "unkar: line too long, truncating"
+   !byte chrCR,0
 
 initGetByte = *
    lda #0
@@ -434,7 +437,7 @@ scanNum = *  ;( (zp)=num, .Y=inLineIndex ) : .Y=scan, [scanVal]=num, .CS=err
    beq scanError
    clc
    rts
-+  and #$0f
+++ and #$0f
    sta scanDigit
    lda #$ff
    sta scanAnything
@@ -447,7 +450,7 @@ scanNum = *  ;( (zp)=num, .Y=inLineIndex ) : .Y=scan, [scanVal]=num, .CS=err
    bpl -
    lda #2
    sta scanIndex
--  clc
+-- clc
    ldy #4
    ldx #0
 -  rol scanVal,x
