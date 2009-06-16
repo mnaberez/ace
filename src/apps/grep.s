@@ -1,12 +1,15 @@
 ;*** grep program
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@0:grep"
+;*** crc32b program - by Craig Bruce - 14-Oct-93
+
+!src "../system/acehead.s"
+!to "../../build/grep", cbm
+
+*= aceAppAddress
 
 jmp grepMain
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 ;*** global declarations
 
@@ -15,18 +18,30 @@ libwork = $40
 chrQuote = $22
 maxLineLen = 2049
 
-inverseFlag .buf 1
-ignoreCaseFlag .buf 1
-displayFilenameFlag .buf 1
-anchorLeftFlag .buf 1
-anchorRightFlag .buf 1
-stringLen .buf 1
-onebyteLine .buf 1
-lineLimitedFlag .buf 1
-countlWritten .buf 1
-lwCutoffFlag .buf 1
-fileShownFlag .buf 1
-unixAsciiFlag .buf 1
+inverseFlag = *
+   !fill 1
+ignoreCaseFlag = *
+   !fill 1
+displayFilenameFlag = *
+   !fill 1
+anchorLeftFlag = *
+   !fill 1
+anchorRightFlag = *
+   !fill 1
+stringLen = *
+   !fill 1
+onebyteLine = *
+   !fill 1
+lineLimitedFlag = *
+   !fill 1
+countlWritten = *
+   !fill 1
+lwCutoffFlag = *
+   !fill 1
+fileShownFlag = *
+   !fill 1
+unixAsciiFlag = *
+   !fill 1
 
 ;******** standard library ********
 puts = *
@@ -56,7 +71,8 @@ putc = *
    lda #1
    ldy #0
    jmp write
-   putcBuffer .buf 1
+   putcBuffer = *
+      !fill 1
 
 getchar = *
    ldx #stdin
@@ -73,7 +89,8 @@ getc = *
    rts
 +  sec
    rts
-   getcBuffer .buf 1
+   getcBuffer = *
+      !fill 1
 
 getarg = *
    sty zp+1
@@ -107,8 +124,8 @@ checkstop = *
    ldx #0
    jmp aceProcExit
    stoppedMsg = *
-   .asc "<Stopped>"
-   .byte chrCR,0
+   !pet "<Stopped>"
+   !byte chrCR,0
 
 ;===grep===
 grepArg = 2
@@ -139,8 +156,8 @@ grepUsage = *
    jmp eputs
 
 grepUsageMsg = *
-   .asc "usage: grep [-[i][v]] [^]substr[$] files"
-   .byte chrCR,0
+   !pet "usage: grep [-[i][v]] [^]substr[$] files"
+   !byte chrCR,0
 
 grepEnoughArgs = *
    ;** get input buffer length
@@ -299,11 +316,11 @@ grepError = *
    jmp eputs
 
 grepErrorMsg1 = *
-   .asc "Error reading file "
-   .byte chrQuote,0
+   !pet "Error reading file "
+   !byte chrQuote,0
 
 grepErrorMsg2 = *
-   .byte chrQuote,chrCR,0
+   !byte chrQuote,chrCR,0
 
 bufPtr = 10
 bufCount = 12
@@ -336,8 +353,8 @@ grep = *
 +  rts
 
 msgNull = *
-   .asc " - <0 lines selected>"
-   .byte chrCR,0
+   !pet " - <0 lines selected>"
+   !byte chrCR,0
 
 lineLen = $40      ;(2)
 linePtr = $42      ;(2)
