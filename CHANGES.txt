@@ -3,4 +3,7 @@ Next Release
  - Fixed usage message in crc32a to display the command name
    as "crc32a" instead of "crc32".
 
+ - Updated grep to the newer version from Adam Vardy found in the
+   "Newer Components" section of Craig Bruce's ACE Release 16 page.
+
 Release 16

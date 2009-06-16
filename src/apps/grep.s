@@ -21,6 +21,12 @@ displayFilenameFlag .buf 1
 anchorLeftFlag .buf 1
 anchorRightFlag .buf 1
 stringLen .buf 1
+onebyteLine .buf 1
+lineLimitedFlag .buf 1
+countlWritten .buf 1
+lwCutoffFlag .buf 1
+fileShownFlag .buf 1
+unixAsciiFlag .buf 1
 
 ;******** standard library ********
 puts = *
@@ -118,6 +124,9 @@ grepMain = *
    sta displayFilenameFlag
    sta anchorLeftFlag
    sta anchorRightFlag
+   sta lineLimitedFlag
+   sta lwCutoffFlag
+   sta unixAsciiFlag
    lda aceArgc+1
    bne grepEnoughArgs
    lda aceArgc
@@ -164,6 +173,16 @@ grepEnoughArgs = *
    bne +
    lda #$ff
    sta inverseFlag
++  cmp #"l"
+   bne +
+   lda #$ff
+   sta lineLimitedFlag
++  cmp #"u"
+   bne +
+   lda #$ff
+   sta unixAsciiFlag
+   lda #$ff
+   sta ignoreCaseFlag
 +  jmp -
 
    substrArg = *
@@ -201,6 +220,8 @@ grepEnoughArgs = *
 
    nextArg = *
    jsr checkstop
+   lda #0
+   sta onebyteLine
    lda grepArg
    ldy grepArg+1
    jsr getarg
@@ -210,6 +231,7 @@ grepEnoughArgs = *
    sty grepName+1
    ora zp+1
    beq grepExit
+;main routine  !!!!!!!
    jsr grep
    bcc +
    jsr grepError
@@ -303,7 +325,19 @@ grep = *
    ;** close file
    lda infile
    jsr close
-   rts
+   bit fileShownFlag
+   bmi +
+   lda grepName
+   ldy grepName+1
+   jsr puts
+   lda #<msgNull
+   ldy #>msgNull
+   jsr puts
++  rts
+
+msgNull = *
+   .asc " - <0 lines selected>"
+   .byte chrCR,0
 
 lineLen = $40      ;(2)
 linePtr = $42      ;(2)
@@ -312,7 +346,15 @@ grepBody = *
    lda #0
    sta bufCount
    sta bufCount+1
--  jsr getline
+   sta fileShownFlag
+-  inc onebyteLine
+   bne gnextLine
+   bit lineLimitedFlag
+   bpl gnextLine
+   rts
+gnextLine = *
+   jsr checkstop
+   jsr getline
    bcc +
    rts
 +  jsr checkLine
@@ -324,6 +366,10 @@ grepBody = *
 +  bcs -
    jsr writeLine
    jmp -
+
+;sadly checkstop only works part of the time,
+;because apparently much of the greping time is
+;spent in the system 'read' routine.
 
 lineReset = $44   ;(2)
 stringPos = $46   ;(1)
@@ -382,14 +428,25 @@ checkLine = *  ;() : .CC=no_match, .CS=match
    bcs +
    sec
    sbc #"A"-"a"
+   rechecklet = *
    ldy stringPos
    cmp (grepString),y
    beq -
-+  lda lineReset
+-  lda lineReset
    ldy lineReset+1
    sta linePtr
    sty linePtr+1
    jmp checkSubstr
+
++  bit unixAsciiFlag
+   bpl -
+   cmp #"a"+$20
+   bcc -
+   cmp #"z"+$21
+   bcs -
+   sec
+   sbc #$61-"a"
+   jmp rechecklet
 
    endOfLine = *
    clc
@@ -414,6 +471,16 @@ checkLine = *  ;() : .CC=no_match, .CS=match
    rts
 
 writeLine = *
+   ldx countlWritten
+   cpx #10
+   bne +
+   lda lwCutoffFlag
+   beq +
+   rts
++  inx
+   stx countlWritten
+   lda #$ff
+   sta fileShownFlag
    lda displayFilenameFlag
    beq +
    lda grepName
@@ -446,8 +513,13 @@ getline = *  ;() : lineLen, linePtr
 -  jsr getByte
    bcc +
    rts
++  bit unixAsciiFlag
+   bpl +
+   cmp #chrBOL
+   beq linedone
 +  cmp #chrCR
    bne +
+   linedone = *
    lda #0
    ldy #0
    sta (linePtr),y
@@ -457,6 +529,7 @@ getline = *  ;() : lineLen, linePtr
    sty linePtr+1
    clc
    rts
+;  or check line > 80 when -u ...?
 +  ldx lineLen+1
    cpx #>maxLineLen
    bcs -
