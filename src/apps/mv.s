@@ -1,12 +1,13 @@
 ;*** mv (rename) program
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@0:mv"
+!src "../system/acehead.s"
+!to "../../build/mv", cbm
+
+*= aceAppAddress
 
 jmp main
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 ;*** global declarations
 
@@ -40,7 +41,8 @@ putc = *
    lda #1
    ldy #0
    jmp write
-   putcBuffer .buf 1
+   putcBuffer = *
+      !fill 1
 
 getchar = *
    ldx #stdin
@@ -57,7 +59,8 @@ getc = *
    rts
 +  sec
    rts
-   getcBuffer .buf 1
+   getcBuffer = *
+      !fill 1
 
 getarg = *
    sty zp+1
@@ -100,10 +103,10 @@ usage = *
    jmp puts
 
 usageMsg = *
-   .asc "Usage: mv oldname newname ..."
-   .byte chrCR
-   .asc "       where ... means repeat names in old/new pairs"
-   .byte chrCR,0
+   !pet "Usage: mv oldname newname ..."
+   !byte chrCR
+   !pet "       where ... means repeat names in old/new pairs"
+   !byte chrCR,0
 
 enoughArgs = *
    lda #1
@@ -167,8 +170,8 @@ checkstop = *
    jmp aceProcExit
 
    stoppedMsg = *
-   .asc "<stopped>"
-   .byte chrCR,0
+   !pet "<stopped>"
+   !byte chrCR,0
 
 error = *
    lda #<errorMsg1
@@ -182,11 +185,11 @@ error = *
    jmp eputs
 
 errorMsg1 = *
-   .asc "Error attempting to rename "
-   .byte chrQuote,0
+   !pet "Error attempting to rename "
+   !byte chrQuote,0
 
 errorMsg2 = *
-   .byte chrQuote,chrCR,0
+   !byte chrQuote,chrCR,0
 
 echo = *
    lda #<echoMsg1
@@ -207,16 +210,16 @@ echo = *
    rts   
 
 echoMsg1 = *
-   .asc "Renaming file "
-   .byte chrQuote,0
+   !pet "Renaming file "
+   !byte chrQuote,0
 
 echoMsg2 = *
-   .byte chrQuote
-   .asc " to "
-   .byte chrQuote,0
+   !byte chrQuote
+   !pet " to "
+   !byte chrQuote,0
 
 echoMsg3 = *
-   .byte chrQuote,chrCR,0
+   !byte chrQuote,chrCR,0
 
 ;===the end===
 bss    = *

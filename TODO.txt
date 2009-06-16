@@ -8,7 +8,6 @@ Apps to convert to ACME format:
   keymat.s
   more.s
   mousetest.s
-  mv.s
   sort.s
   term.s
   tr.s
