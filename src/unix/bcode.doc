@@ -1,0 +1,363 @@
+BCODE/UNBCODE DOCUMENTATION  for Version 2.02   [February 28, 1995]
+
+1. INTRODUCTION
+
+This is the documentation for the bcode and unbcode C programs.  These
+programs allow you to encode binary data into a text format that can be
+e-mailed or posted to USENET newsgroups.  Functionally, they are quite similar
+to the uuencode/uudecode standard Unix utilities, except that these programs
+can use three different encoding formats (including "uucode") and allow for
+the automatic splitting, reordering, and incremental reassembly of multiple
+file segments for long files, and provide CRC-32 and size error checking on
+each encoded segment.  In other words, these are "better-mousetrap" versions
+of the uucode utilities.
+
+Other Unix utilities give you some combination of these features for uuencoded
+data, but, as far as I am personally able to determine, all other approaches
+(including the "e" feature of "rn") are fundamentally flawed.  Other
+approaches attempt to parse the natural language of the subject lines and the
+text file contents to figure out the file/segment information, but this is an
+AI-complete problem and the results are hit-and-miss.  The approach used here
+alters the standard uucode format a little to give filename and segment number
+data in a simple and consistent manner.
+
+There is a catch, however.  You can only extract multi-segment data that was
+encoded using the encoding formats defined herein.  Until the people on the
+other end use the encoding formats these programs give (dare to dream), the
+decoding program here is fundamentally no more powerful than the standard Unix
+uudecode program (though better-done, IMHO).
+
+The C code is in ANSI-C format.  Both the "bcode.c" and "unbcode.c" source
+files contain complete programs, so there is no need for a Makefile.  Just
+compile and run.  The programs make no major system-specific assumptions, with
+the exception that the decoder uses the system calls "rename" and "remove" for
+files.  On some systems, these will be "link" and "unlink".  I also found that
+the C++ compiler I tried wanted to have "<sysent.h>" included in order to use
+its "link" and "unlink" calls.
+
+2. ENCODING/DECODING FORMATS
+
+2.1. NUCODE and UUCODE
+
+The bcode and unbcode programs support four encoding formats: NUCODE, UUCODE,
+BCODE, and HEXCODE.  The NUCODE format is both upward and downward compatible
+with the old, problematic, and incomplete UUCODE format that is very popular
+out here in cyberspace.  Here is what the NUCODE format looks like:
+
+-nucode-begin 2 quote2
+>+3$I)W,@:6YT;R!I="XB("T@0W)A:6<@0G)U8V4*
+`
+end
+-nucode-end 2 30 efb8f0c5
+
+dum de dum... random separation between the segments...
+
+-nucode-begin 1 quote2
+begin 640 quote2
+M(DEF+"!A9G1E<B!E>'1E;G-I=F4@='=E86MI;F<L('EO=7(@<')O9W)A;2!I
+M<R!S=&EL;"!T;V\@<VQO=RP@=')Y(&1R;W!P:6YG(&$*(&9E=R`G<VQE97`H
+-nucode-continued 1 90 fdcdb3d3
+
+Here, the encoded file "quote2" is encoded into two different segments and
+the second segment is given first.  Try running this through the decoder
+and the encoded file will be extracted correctly.
+
+The first line of segment #1 of the data begins with "-nucode-begin", which is
+much less likely to appear in regular text than the uucode control token
+"begin".  The token is followed by the segment number and filename.  For
+downward compatibility, the standard 'begin mode filename' line is also given
+so that a standard uudecode utility can decode NUCODEd data (if the data is
+encoded into only a single segment, which it is not in the example).  The body
+of the encoded data is identical to the UUCODE format, and includes the "`"
+and "end" lines in the final segment.  The final line of the final segment of
+NUCODEd data has the "-nucode-end" token, the segment number, the segment size
+in bytes, and a CRC-32 error checking value in hexadecimal.  The CRC algorithm
+used here is the same as the one used by PKZIP and ZMODEM, and a table-driven
+implementation is used, so calculating the CRC is no more expensive than
+computing a simple checksum.
+
+If a given segment is not the final segment of a file, then the control token
+on the last line will be "-nucode-continued", indicating that the decoding
+program should be on the lookout for more segments belonging to the file.
+This method of encoding allows all files to be encoded in a single pass.  Oh,
+and of course, you can have multiple discontiguous file segments encoded in
+different formats in the same input file or stream with the decoder.
+
+In previous versions of this utility, all of the control tokens had a
+two-hyphen prefix, which, IMHO, looks better than one, but it was pointed out
+that using two hyphens at the start of a line can be misinterpreted by
+anonymous mailing and posting services as being the beginning of a signature
+block, and they will erase the line starting with the two hyphens and every
+line following it to help retain the anonymity of the sender.  This is fine
+and dandy, but stripping the body of a bcoded message would not be a good
+thing, so the new standard for bcoded data is for all control tokens to have
+one hyphen, and the use of two hyphens has been relegated to the status of
+being a "hysterical raisin".  However, the decoder will, of course, still
+accept control tokens with two hyphens and the encoder will generate output
+with two-hyphen control tokens if you ask it to (with the -2 option).  This
+applies to all encoding formats supported.
+
+2.2. BCODE
+
+The BCODE format, for which these utilities were originally written and named,
+looks like the following:
+
+-bcode-begin 1 quote1
+IklmLCBhZnRlciBleHRlbnNpdmUgdHdlYWtpbmcsIHlvdXIgcHJvZ3JhbSBpcyBzdGlsbCB0
+b28gc2xvdywgdHJ5IGRyb3BwaW5nIGEKIGZldyAnc2xlZXAoLTEpJ3MgaW50byBpdC4iIC0g
+Q3JhaWcgQnJ1Y2UK
+-bcode-end 1 120 44fefcc6
+
+The control lines are basically the same as for the NUCODE format (sans ugly
+backward-compatibility garbage) and the body is identical to the format that
+the BASE-64 encoding format used with MIME produces.  The difference between
+BCODE and MIME is that BCODE uses much simpler control information.  The two
+advantages of this format over NUCODE are that (1) the encoding is slightly
+more efficient in that you don't need the data-length character at the start
+of every line and the standard line length is a little longer, and (2) that
+no ASCII characters are used that can be easily misinterpreted or mangled in
+conversions to other character coding schemes.
+
+2.3. HEXCODE
+
+The HEXCODE format is a very simple hexadecimal format that can be used to
+visually inspect a file, for downloading over a particularly unreliable
+connection, or for bootstrapping purposes.  HEXCODE looks like the following:
+
+-hexcode-begin 1 quote3
+000000:2249662c20616674657220657874656e7369766520747765616b696e672c2079:69
+000020:6f75722070726f6772616d206973207374696c6c20746f6f20736c6f772c2074:c9
+000040:72792064726f7070696e6720610a206665772027736c656570282d3129277320:24
+000060:696e746f2069742e22202d2043726169672042727563650a:75
+-hexcode-end 1 120 44fefcc6
+
+Each line includes the hexadecimal file position and a simple 8-bit add-up
+checksum.  A simple decoder program can easily be written for bootstrapping
+yourself if you are unable to use the C-language UNBCODE program on the
+target platform.
+
+3. BCODE PROGRAM
+
+The usage of the BCODE program is as follows:
+
+bcode [-vbuh12] [-l max_lines] [-p pref] [[[filename][-a encoding_alias]] ...]
+
+The "-v" flag activates "verbose" mode, in which the program reports when it
+opens a file for input or output.
+
+The "-b", "-u", and "-h" flags specify that you wish to encode in bcode,
+nucode, or hexcode, respectively.  The default if none of these flags are used
+is defined in the source code by the "DEFAULT_FORMAT" label.  The factory-set
+default for this label is UUCODE.  The other possible values are BCODE and
+HEXCODE.
+
+The "-1" and "-2" flags tell the encoder whether to produce control tokens
+with one or two hyphens.  The default is the new standard, which is for one
+hyphen to be produced, but you can change the default by setting the
+"DEFAULT_TOKHYPH" label to either 1 or 2.  The decoder can, of course, handle
+either option.  The reasoning behind these flags was described in a previous
+section.
+
+The "-l" flag and value allow you to specify the maximum number of encoded
+lines to include in each segment of the encoded data.  When this flag is used,
+output is sent to special output files rather than to stdout (where it is
+usually sent).  One segment is sent to each special output file.  These
+special output files are named after the file being encoded, appended with a
+".u" followed by the at-least-two-digit segment number, for the nucode format.
+For example,
+
+bcode -l 1000 junkfile
+
+would put the bcoded segment data into "junkfile.u01", "junkfile.u02", ...,
+"junkfile.u99", "junkfile.u100", etc.  Each line of nucoded data contains 63
+characters (which represent 45 raw data bytes), so 1000 lines will produce
+63000 bytes of output (counting a CR and LF at the end of each line), which is
+a good size for posting or for mailing to brain-damaged mailers (under 64K),
+with a little extra text at the top.  The max_lines value does not include the
+control lines in the encoding format.
+
+For the BCODE format, the special filenames are appended with a ".b" and the
+segment number, and for HEXCODE, a ".h" and segment number.  If you define the
+"MESS_DOS" label during assembly, the special filenames will have the forms
+"bcNNN.bco", "uuNNN.uue", and "hexNNN.hex" for bcode, nucode, and hexcode
+formats, respectively.  These names are compatible with the brain-damaged
+MS-DOS filename format.
+
+The "-p" flag allows you to give a filename prefix for the encoded-output
+files produced by the "-l" option, so that you can, for example, have the
+output files go into a different directory.  Since this is a prefix rather
+than a directory name, you have to include, on a Unix system, the extra "/"
+at the end of the directory name, as in "/tmp/mydir/".  The prefix argument
+follows the "-p" flag.
+
+If you include filenames on the command line, then input will be taken from
+them in turn (otherwise, input is taken from stdin and labelled "stdin").  If
+there is a "-a" flag following a filename, then the file is labelled as the
+encoding_alias following the "-a" flag in the nucode/whatever control
+information.  You may include many filenames (and associated aliases) on a
+command line to create a nucode/whatever "archive".  You may use a "-a" flag
+on a command with no filenames to give your own name to the stdin stream.
+
+4. UNBCODE PROGRAM
+
+The usage of the UNBCODE program is as follows:
+
+unbcode [-ivdnf] [-p prefix] [filename ...]
+
+The "-i", "-v", and "-d" flags are used to request different levels of
+operational information: informative, verbose, and debugging, respectively.
+Informative messages include when a file is completely pieced back together,
+verbose information includes when a file is opened or closed, and debugging
+information includes a dump of the internal "fragment" table that keeps track
+of which segments of which files the decoder currently has decoded.  To keep
+our terminology straight, a "fragment" consists of one or more file
+"segments".  All of this information is sent to the "stderr" file stream.
+
+The "-n" flag is similar to the "-i" flag, except that only the filenames are
+spit out for the files reassembled, and the names are sent to the "stdout"
+file stream.  The feature is intended to make this program inter-usable with
+other programs.
+
+The "-f" flag tells the decoder to forcibly accept a segment that has some
+kind of error in it.  Normally, when a segment is found to contain an error
+of any type it is simply discarded and not used.  This works well with the
+incremental-operation of the decoding process, which allows you to decode
+different segments of a single input file on multiple runs of the decoder
+program (i.e., you would get yourself a vaild copy of the segment in question
+and rerun the decoder on it later).  However, if you wish to take whatever
+garbled data comes out of a corrupted segment, you can give the "-f" flag.
+All syntax errors (e.g., bad character) in a segment are dealt with by
+completely ignoring the line on which the error occurred (perhaps not ideal),
+and error-check errors are simply ignored.  Error messages are generated but
+the decoded segment is kept as if it were valid.
+
+The "-p" flag allows you to give a filename prefix to use for the temporary
+files that are generated during the decoding process.  Temporary files are
+discussed fully in a sec.  If the "-p" flag is not used, then the temporary
+files are maintained in the current directory, and if the "-p" flag is used,
+the temporary files are given whatever prefix you specify.  Normally, you
+would use this prefix feature to make the temporary files appear in a separate
+directory from the current directory (which is where the final, reassembled
+files will go).  Since this is a prefix, you must remember to put the final
+"/" on Unix directory names.  It is recommended that on a Unix system that you
+use something like "/tmp/mydir/" rather than just "/tmp/" to avoid name
+collisions with other users who might be decoding stuff at the same time.
+
+There may not be much savings in space for keeping temp files in a separate
+directory, since the amount of data on hand will generally not exceed the full
+size of all the extracted data, because of the way that the temporary files
+are handled.  In other words, the usage of temporary storage is quite
+efficient.  There will be no savings in time for using a temp prefix, since
+the final files must be copied to the current directory after being extracted,
+whereas they are simply renamed if temps are kept in the current directory.
+The only real advantage is that, on some systems, the final order of extracted
+files in a directory will not get mish-mashed (which would only happen if the
+encoded data were horribly out of order, requiring the creation of lots of
+temporary files).
+
+Any number of filenames may be given on the command line, and stdin is used if
+no names are given.  The program will do a one-pass sweep of all input files,
+so your system need not support random file accessing.
+
+Intermediate segments are decoded immediately and placed into temporary files
+in the current directory (or prefix "directory") named like "0BC00001", with
+different numbers.  These files are created and deleted as needed.  Between
+runs, if there are any files that have not yet been completely pieced
+together, the "fragment" information is saved into "0BC-STAT", which can be
+listed to see what is in the temporary files and which segments of the files
+are missing.  If you use the prefix option, make sure that you use the same
+prefix between multiple runs if the runs are incomplete and leave this stat
+file lying around.  An example of this file's contents could be:
+
+00001-00001  beg  0000043200  0BC00002  filea
+00001-00001  beg  0000003264  0BC00004  fileb
+00003-00003  mid  0000000667  0BC00001  fileb
+00005-00006  end  0000074586  0BC00003  fileb
+
+The first two columns with the dash between indicate the range of segment
+numbers that are contained in the temporary file.  The next column gives the
+interpretation of the temporary file, indicating if it is the beginning,
+middle, or the end of the complete file being decoded.  The next column gives
+the number of valid bytes in the decoded fragment, and the next gives the name
+of the temporary file, and the final column gives the name of the file that
+the segment belongs to.
+
+The fact that the status of decoding is kept between runs means that you don't
+have to have all of the segments of the final file(s) present at any one run.
+This would be useful, for example, if you were reading a binaries newsgroup
+that posts in a supported format and you come across a posting that has
+multiple file segments in multiple articles.  Rather than saving all of the
+pieces into a file and exiting the news reader to decode, you could use the
+"save to pipe" feature of most news readers.  You would enter something like:
+
+s | unbcode -i
+
+(or have it progammed into a copy buffer to be auto-entered at the touch of
+a mouse button) and the segment data would be interpreted and the decoder
+would inform you when it has successfully patched together a complete binary
+file.  This approach also works if the pieces of a posting are not only out
+of order, but also if multiple postings which you want are mish-mashed
+together.  A grander attack, again if all postings are in a supported
+multi-segment format, might be:
+
+53453-56209s | unbcode -i
+
+If you get into trouble with a lot of garbage 0BC* files being left around
+after a really screwed up decode attempt, you can simply delete all of the
+0BC* files to wipe the slate clean.
+
+This program makes the following assumptions about its execution environment:
+we have sequential access to disk files, the append file mode is available,
+and the file rename and remove operations are available.  It also assumes the
+compiler is able to assign structures.
+
+5. MS-DOS STUFF
+
+In addition to the notes above about being able to set compilation flags to
+use the brain-damaged MS-DOS filename format, there are a couple of notes
+that should be made about running these programs on MS-DOS machines (as
+pointed out by a friend):
+
+I compiled BCODE/UNBCODE...  No problems in the compiling.  Both seem to work
+with no *functional* problems, but some non-DOS characteristics...  The ones I
+noticed are:
+
+    1) when no file name is given, stdin is assumed, which will not be
+       expected by most MESSY-DOS users  :)
+
+    2) MS-DOS file completion is not supported.  This is a problem in the
+       decoding as people would tend to try a "unbcode uu*.uue" which
+       unfortunately doesn't cut it.  GOD I wish DOS were smarter.  Also
+       due to Bill Gates' stupidity again, DOS command lines are limited
+       to 128 characters, so without wildcards, it can only process about 9
+       parts at a shot...  :(
+
+One note on this second part: you can copy a number of parts into a single
+file for input to unbcode, or you may even be able to do:
+
+type uu*.uue | unbcode
+
+although I can't be sure that the MS-DOS "type" command works intelligently,
+i.e., like the Unix "cat" command.
+
+6. CONCLUDING STUFF
+
+These programs are Public Domain Software.  You may use them and distribute
+them freely, write filters that use the various formats, or rip into the code
+and extract the guts for your own purposes.  All that I ask if you modify the
+code is that you leave my name in to show where the code came from and add
+your name to take the heat off me if your modifications have bugs.
+
+The files are also available via anonymous FTP from "ccnga.uwaterloo.ca" in
+directory "/pub/cbm/unix" or from the World-Wide Web in URL
+"http://ccnga.uwaterloo.ca/~csbruce/unix.html".
+
+If you have any comments, questions or suggestions, you can contact me at
+the following e-mail address.  Oh, there is no warranty of any kind here,
+so if use of this program causes your company to lose millions of dollars,
+tough noogies.
+
+-Craig Bruce
+csbruce@ccnga.uwaterloo.ca
+"Proposed standard unit of data storage: the 'Virtual Tree', equivalent to
+ 120.8 megabytes."
