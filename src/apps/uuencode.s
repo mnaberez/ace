@@ -1,12 +1,14 @@
 ;*** uuencode program
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@0:uuencode"
+!src "../system/acehead.s"
+!to "../../build/uuencode", cbm
+!convtab pet
+
+*= aceAppAddress
 
 jmp uuencodeMain
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 ;*** global declarations
 
@@ -43,8 +45,10 @@ uueUsage = *
    jmp puts
 
 uueUsageMsg = *
-   .byte "Usage: uuencode [-aulc] file1 file2 ... fileN",chrCR
-   .byte "       -a=asciiCrLf, -u=asciiLf, -l=asciiLf, -c=asciiCr",chrCR,0
+   !pet "Usage: uuencode [-aulc] file1 file2 ... fileN"
+   !byte chrCR
+   !pet "       -a=asciiCrLf, -u=asciiLf, -l=asciiLf, -c=asciiCr"
+   !byte chrCR,0
 
 uueEnoughArgs = *
    ;** get input buffer length
@@ -65,7 +69,8 @@ uueEnoughArgs = *
    ldy #0
    sta uueArg
    sty uueArg+1
--  jsr checkstop
+.uea1:
+   jsr checkstop
    lda uueArg
    ldy uueArg+1
    jsr getarg
@@ -78,50 +83,60 @@ uueEnoughArgs = *
    ldy #0
    lda (zp),y
    cmp #"-"
-   bne +
+   bne .uea2
    jsr handleFlags
-   jmp ++
-+  jsr uueEcho
+   jmp .uea3
+.uea2:
+   jsr uueEcho
    jsr uuencode
-   bcc +
+   bcc .uea3
    jsr uueError
-+  inc uueArg
-   bne +
+.uea3:
+   inc uueArg
+   bne .uea4
    inc uueArg+1
-+  jmp -
+.uea4:
+   jmp .uea1
 
 uueExit = *
    rts
 
 handleFlags = *
--  iny
+.hf1:
+   iny
    lda (zp),y
-   bne +
+   bne .hf2
    rts
-+  ldx #$ff
+.hf2:
+   ldx #$ff
    cmp #"a"
-   bne +
+   bne .hf3
    stx asciiFlag
    stx lfFlag
    stx crFlag
-   jmp -
-+  cmp #"u"
-   bne +
--  stx asciiFlag
+   jmp .hf1
+.hf3:
+   cmp #"u"
+   bne .hf5
+.hf4
+   stx asciiFlag
    stx lfFlag
    ldx #$00
    stx crFlag
-   jmp --
-+  cmp #"l"
-   beq -
-+  cmp #"c"
-   bne +
+   jmp .hf1
+.hf5
+   cmp #"l"
+   beq .hf4
+.hf6
+   cmp #"c"
+   bne .hf7
    stx asciiFlag
    stx crFlag
    ldx #$00
    stx lfFlag
-   jmp --
-+  jmp uueUsage
+   jmp .hf1
+.hf7
+   jmp uueUsage
 
 uueError = *
    lda #<uueErrorMsg1
@@ -135,14 +150,14 @@ uueError = *
    jmp eputs
 
 uueErrorMsg1 = *
-   .asc "Error attempting to uuencode "
-   .byte chrQuote
-   .byte 0
+   !pet "Error attempting to uuencode "
+   !byte chrQuote
+   !byte 0
 
 uueErrorMsg2 = *
-   .byte chrQuote
-   .byte chrCR
-   .byte 0
+   !byte chrQuote
+   !byte chrCR
+   !byte 0
 
 uueEcho = *
    lda #<uueEchoMsg1
@@ -156,15 +171,15 @@ uueEcho = *
    jmp eputs
 
 uueEchoMsg1 = *
-   .asc "Uuencoding file "
-   .byte chrQuote
-   .byte 0
+   !pet "Uuencoding file "
+   !byte chrQuote
+   !byte 0
 
 uueEchoMsg2 = *
-   .byte chrQuote
-   .asc "..."
-   .byte chrCR
-   .byte 0
+   !byte chrQuote
+   !pet "..."
+   !byte chrCR
+   !byte 0
 
 checkstop = *
    jsr aceConStopkey
@@ -178,8 +193,8 @@ checkstop = *
    jmp aceProcExit
 
    stoppedMsg = *
-   .asc "<Stopped>"
-   .byte chrCR,0
+   !pet "<Stopped>"
+   !byte chrCR,0
 
 uuencode = *
    ;** open file
@@ -227,7 +242,7 @@ uuencodeBody = *
 -  jsr uuLine
    bcc -
    ;** zero line
-   lda #"`"
+   lda #$c0  ;#"`"
    bit asciiFlag
    bpl +
    lda #$60
@@ -256,14 +271,16 @@ uueCrLf = *
 +  rts
 
 uueHeaderMsg = *
-   .byte "begin 640 ",0
+   !pet "begin 640 "
+   !byte 0
 uueAsciiHeaderMsg = *
-   .byte $62,$65,$67,$69,$6e,$20,$36,$34,$30,$20,0
+   !byte $62,$65,$67,$69,$6e,$20,$36,$34,$30,$20,0
 
 uueEndMsg = *
-   .byte "end",0
+   !pet "end"
+   !byte 0
 uueAsciiEndMsg = *
-   .byte $65,$6e,$64,0
+   !byte $65,$6e,$64,0
 
 getByte = *
    lda bufCount
@@ -426,7 +443,7 @@ getUuchar = *
    bmi getUucharAscii
    and #%00111111
    bne +
-   lda #"`"
+   lda #$c0  ;#"`"
    rts
 +  clc
    adc #" "
@@ -476,7 +493,8 @@ putc = *
    lda #1
    ldy #0
    jmp write
-   putcBuffer .buf 1
+   putcBuffer = *
+      !fill 1
 
 getchar = *
    ldx #stdin
@@ -493,7 +511,8 @@ getc = *
    rts
 +  sec
    rts
-   getcBuffer .buf 1
+   getcBuffer = *
+      !fill 1
 
 getarg = *
    sty zp+1
@@ -549,7 +568,7 @@ basename = * ;( (zp)=inname ) : uueOutBuf=outname
 
 outBufToAscii = * ;uueOutBuf=str
    ldy #0
--  lda uueOutBuf,y
+-- lda uueOutBuf,y
    bne +
    rts
 +  cmp #$20
