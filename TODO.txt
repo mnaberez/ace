@@ -5,11 +5,8 @@ Apps to convert to ACME format:
   cp.s
   crc32.s
   crc32a.s
-  eighty.s
-  forty.s
   fx.s
   grep.s
-  jif.s
   kar.s
   keymat.s
   mem.s

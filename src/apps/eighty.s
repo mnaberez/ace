@@ -1,14 +1,15 @@
 ;eighty - change to 80-column screen program, version 1.0
 
-;by Craig Bruce, 07-Apr-1995.  This program is in Buddy-assembler format.
+;by Craig Bruce, 07-Apr-1995.
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@0:eighty"
+!src "../system/acehead.s"
+!to "../../build/eighty", cbm
+
+*= aceAppAddress
 
 jmp main
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 rows  = $02
 digit = $03
@@ -21,7 +22,7 @@ main = *
    jsr getarg
    beq doScreen
    ldy #0
--  lda (zp),y
+-- lda (zp),y
    beq doScreen
    cmp #"0"
    bcs +
@@ -60,16 +61,16 @@ main = *
    jmp eputs
 
 errmsg = *
-   .asc "error: cannot activate 80-column screen as specified"
-   .byte chrCR,0
+   !pet "error: cannot activate 80-column screen as specified"
+   !byte chrCR,0
 
 usage = *
    lda #<usageMsg
    ldy #>usageMsg
    jmp eputs
    usageMsg = *
-   .asc "usage: eighty [rows]"
-   .byte chrCR,0
+   !pet "usage: eighty [rows]"
+   !byte chrCR,0
 
 ;******** standard library ********
 

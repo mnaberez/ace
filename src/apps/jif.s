@@ -1,12 +1,13 @@
 ;*** jif program - by Craig Bruce - 21-Feb-94
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@0:jif"
+!src "../system/acehead.s"
+!to "../../build/jif", cbm
+
+*= aceAppAddress
 
 jmp main
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 ;===window===
 
@@ -30,9 +31,10 @@ main = *
    jmp putchar
 
 msg = *
-   .asc "jiffy count = "
-   .byte 0 
-numbuf .buf 12
+   !pet "jiffy count = "
+   !byte 0 
+numbuf = *
+   !fill 12
 
 ;******** standard library ********
 
@@ -63,7 +65,8 @@ putc = *
    lda #1
    ldy #0
    jmp write
-   putcBuffer .buf 1
+putcBuffer = *
+   !fill 1
 
 ;===the end===
 
