@@ -4,13 +4,15 @@
 
 ;Kevin's ARchiver format, created by Kevin Phillips and Craig Bruce, 1991
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@0:kar"
+!src "../system/acehead.s"
+!to "../../build/kar", cbm
+!convtab pet
+
+*= aceAppAddress
 
 jmp main
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 ;*** global declarations
 
@@ -46,8 +48,8 @@ die = *
    jmp aceProcExit
 
 tpaMsg = *
-   .asc "Insufficient program space to run"
-   .byte chrCR,0
+   !pet "Insufficient program space to run"
+   !byte chrCR,0
 
 usage = *
    lda #<usageMsg
@@ -56,8 +58,8 @@ usage = *
    jmp die
 
 usageMsg = *
-   .asc "usage: kar [-help] file ..."
-   .byte chrCR,0
+   !pet "usage: kar [-help] file ..."
+   !byte chrCR,0
 
 mainInit = *
    lda #0
@@ -94,8 +96,8 @@ checkStop = *
    jmp die
 
    stoppedMsg = *
-   .asc "<Stopped>"
-   .byte chrCR,0
+   !pet "<Stopped>"
+   !byte chrCR,0
 
 putFileCount = *
    lda aceArgc+0
@@ -134,7 +136,8 @@ putnum = *  ;( .X=zpoff )
    jsr putchar
    rts
 
-   numbuf .buf 11
+   numbuf = *
+      !fill 11
 
 kar = *
    jsr echo
@@ -167,8 +170,8 @@ kar = *
    jsr close
    rts
    openErrMsg = *
-   .asc ": cannot open"
-   .byte chrCR,0
+   !pet ": cannot open"
+   !byte chrCR,0
 
 echo = *
    lda #<echoMsg1
@@ -179,10 +182,10 @@ echo = *
    ldy #>echoMsg2
    jmp eputs
 echoMsg1 = *
-   .asc "karing "
-   .byte chrQUOTE,0
+   !pet "karing "
+   !byte chrQUOTE,0
 echoMsg2 = *
-   .byte chrQUOTE,chrCR,0
+   !byte chrQUOTE,chrCR,0
 
 echoName = *
    lda name+0
@@ -215,14 +218,14 @@ karBody = *
    bcc -
    bcs ++
 +  rts
-+  jsr echoName
+++ jsr echoName
    lda #<ioErrMsg
    ldy #>ioErrMsg
    jsr eputs
    rts
    ioErrMsg = *
-   .asc ": read/write error"
-   .byte chrCR,0
+   !pet ": read/write error"
+   !byte chrCR,0
 
 ;=== line counting portion ===
 
@@ -321,7 +324,8 @@ putc = *
    lda #1
    ldy #0
    jmp write
-   putcBuffer .buf 1
+   putcBuffer = *
+      !fill 1
 
 getarg = *
    sty zp+1

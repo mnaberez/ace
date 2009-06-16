@@ -3,7 +3,6 @@ Apps to convert to ACME format:
   ashelp.s
   bcode.s
   fx.s
-  kar.s
   term.s
   tr.s
   unbcode.s
