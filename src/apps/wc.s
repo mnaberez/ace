@@ -1,12 +1,13 @@
 ;*** word counter program
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@0:wc"
+!src "../system/acehead.s"
+!to "../../build/wc", cbm
+
+*= aceAppAddress
 
 jmp wcMain
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 ;*** global declarations
 
@@ -39,8 +40,10 @@ putchar = *
    ldx xsave
    ldy ysave
    rts
-   xsave .buf 1
-   ysave .buf 1
+   xsave = *
+      !fill 1
+   ysave = *
+      !fill 1
 
 putc = *
    sta putcBuffer
@@ -51,7 +54,8 @@ putc = *
    lda #1
    ldy #0
    jmp write
-   putcBuffer .buf 1
+   putcBuffer = *
+      !fill 1
 
 getchar = *
    ldx #stdin
@@ -68,7 +72,8 @@ getc = *
    rts
 +  sec
    rts
-   getcBuffer .buf 1
+   getcBuffer = *
+      !fill 1
 
 getarg = *
    sty zp+1
@@ -102,8 +107,8 @@ checkstop = *
    ldx #0
    jmp aceProcExit
    stoppedMsg = *
-   .asc "<Stopped>"
-   .byte chrCR,0
+   !pet "<Stopped>"
+   !byte chrCR,0
 
 ;===word count===
 wcArg = 2
@@ -125,8 +130,8 @@ wcUsage = *
    jmp eputs
 
 wcUsageMsg = *
-   .asc "Usage: wc file1 file2 ... fileN"
-   .byte chrCR,0
+   !pet "Usage: wc file1 file2 ... fileN"
+   !byte chrCR,0
 
 wcEnoughArgs = *
    ;** get input buffer length
@@ -185,11 +190,11 @@ wcError = *
    jmp eputs
 
 wcErrorMsg1 = *
-   .asc "Error reading file "
-   .byte chrQuote,0
+   !pet "Error reading file "
+   !byte chrQuote,0
 
 wcErrorMsg2 = *
-   .byte chrQuote,chrCR,0
+   !byte chrQuote,chrCR,0
 
 bufCount = 10
 infile = 12
@@ -388,8 +393,8 @@ reportTotal = *
    jsr wcReport
    rts
    totalMsg = *
-   .asc "<total>"
-   .byte 0
+   !pet "<total>"
+   !byte 0
 
 ;===the end===
 wcBss = *
