@@ -10,6 +10,5 @@ Apps to convert to ACME format:
   uuencode.s
   vbm.s
   vbmpr.s
-  wrap.s
   z.s
 

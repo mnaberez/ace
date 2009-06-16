@@ -1,12 +1,14 @@
 ;*** wrap program
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@0:wrap"
+!src "../system/acehead.s"
+!to "../../build/wrap", cbm
+!convtab pet
+
+*= aceAppAddress
 
 jmp main
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 ;*** global declarations
 
@@ -44,9 +46,12 @@ wrapFlag        = $5d ;(1) ;128=wrap,64=showCR
 modified        = $3b ;(1) ;$00=no, $ff=modified
 modeFlags       = $3c ;(1) ;$80=insert, $40=indent
 statusUpdate    = $3d ;(1) ;128=line,64=col,32=mod,16=ins,8=byt,4=fre,2=nm,1=msg
-markedLinePtr   .buf 4 ;(4)
-markedLineNum   .buf 4 ;(4)
-markedCol       .buf 4 ;(1)
+markedLinePtr = *
+   !fill 4 ;(4)
+markedLineNum = *
+   !fill 4 ;(4)
+markedCol = *
+   !fill 4 ;(1)
 
 ;line format
 
@@ -59,9 +64,12 @@ headLength      = $0b
 
 ;kill buffer
 
-bufferTopPtr    .buf 4 ;(4)
-bufferBotPtr    .buf 4 ;(4)
-bufferLineCount .buf 4 ;(4)
+bufferTopPtr = *
+   !fill 4 ;(4)
+bufferBotPtr = *
+   !fill 4 ;(4)
+bufferLineCount = *
+   !fill 4 ;(4)
 
 ;document buffers
 
@@ -132,29 +140,36 @@ loadLine = *  ;( ) : .CS=end
 
    loadNextByte = *
    lda loadBufCount
-   bne ++
+   bne .ll2
    sty loadLineLen
    jsr loadBuf
-   bcc +
+   bcc .ll1
    rts
-+  ldy loadLineLen
-   ldx loadBufPtr
-+  nop
 
--  lda filebuf,x
+.ll1
+   ldy loadLineLen
+   ldx loadBufPtr
+.ll2
+   nop
+
+.ll3
+   lda filebuf,x
    sta line,y
    inx
    iny
    cmp #chrCR
-   beq ++
+   beq .ll5
    cpy targetLen
-   beq +  ;determines if CRs will go beyond len
-   bcs ++
-+  dec loadBufCount
-   bne -
+   beq .ll4  ;determines if CRs will go beyond len
+   bcs .ll5
+
+.ll4
+   dec loadBufCount
+   bne .ll3
    beq loadNextByte
 
-+  dec loadBufCount
+.ll5
+   dec loadBufCount
    stx loadBufPtr
    sty loadLineLen
    clc
@@ -203,7 +218,7 @@ loadLineWrap = *
 
 +  bit wrapFlag
    bmi +
--  lda targetLen
+-- lda targetLen
    sta loadLineScan
    sta lineLineLen
    rts
@@ -248,7 +263,8 @@ loadLineOverflow = *
 
 ;=== management routines ===
 
-work3Save .buf 14
+work3Save = *
+   !fill 14
 
 saveWork3 = *
    ldx #13
@@ -292,8 +308,10 @@ putchar = *
    ldx xsave
    ldy ysave
    rts
-   xsave .buf 1
-   ysave .buf 1
+   xsave = *
+      !fill 1
+   ysave = *
+      !fill 1
 
 putc = *
    sta putcBuffer
@@ -304,7 +322,8 @@ putc = *
    lda #1
    ldy #0
    jmp write
-   putcBuffer .buf 1
+   putcBuffer = *
+      !fill 1
 
 getchar = *
    ldx #stdin
@@ -321,7 +340,8 @@ getc = *
    rts
 +  sec
    rts
-   getcBuffer .buf 1
+   getcBuffer = *
+      !fill 1
 
 getarg = *
    sty zp+1
