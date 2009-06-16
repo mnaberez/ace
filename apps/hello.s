@@ -1,12 +1,13 @@
 ;* "hello" program
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@0:hello"
+!src "../system/acehead.s"
+!to "./hello", cbm
+
+*= aceAppAddress
 
 jmp main
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 main = *
    lda #<helloMsg
@@ -20,6 +21,6 @@ main = *
    rts
 
 helloMsg = *
-   .asc "Hello, cruel world."
-   .byte chrBEL,chrCR
+   !pet "Hello, you cruel world."
+   !byte chrBEL,chrCR
 helloMsgEnd = *
