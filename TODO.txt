@@ -5,7 +5,6 @@ Apps to convert to ACME format:
   cp.s
   fx.s
   kar.s
-  keymat.s
   more.s
   mousetest.s
   sort.s

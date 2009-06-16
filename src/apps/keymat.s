@@ -1,14 +1,15 @@
 ;keymat - keyboard matrix changer program, verson 1.00
 
-;by Craig Bruce, 21-June-1995.  This program is in Buddy-assembler format.
+;by Craig Bruce, 21-June-1995.
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@0:keymat"
+!src "../system/acehead.s"
+!to "../../build/keymat", cbm
+
+*= aceAppAddress
 
 jmp main
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 main = *
    lda #1
@@ -21,8 +22,8 @@ usage = *
    ldy #>usageMsg
    jmp eputs
    usageMsg = *
-   .asc "usage: keymat keymatFilename"
-   .byte chrCR,0
+   !pet "usage: keymat keymatFilename"
+   !byte chrCR,0
 
 loadKeymat = *
    lda #<bssEnd
@@ -52,11 +53,11 @@ loadKeymat = *
 +  rts
 
 errBloadMsg = *
-   .asc ": cannot bload keymatrix file"
-   .byte chrCR,0
+   !pet ": cannot bload keymatrix file"
+   !byte chrCR,0
 errmsg = *
-   .asc "error: cannot load keymatrix"
-   .byte chrCR,0
+   !pet "error: cannot load keymatrix"
+   !byte chrCR,0
 
 ;******** standard library ********
 
