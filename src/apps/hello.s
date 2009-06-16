@@ -1,7 +1,7 @@
 ;* "hello" program
 
 !src "../system/acehead.s"
-!to "./hello", cbm
+!to "../../build/hello", cbm
 
 *= aceAppAddress
 
@@ -21,6 +21,6 @@ main = *
    rts
 
 helloMsg = *
-   !pet "Hello, you cruel world."
+   !pet "Hello, cruel world."
    !byte chrBEL,chrCR
 helloMsgEnd = *
