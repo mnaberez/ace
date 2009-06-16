@@ -2,7 +2,6 @@ Apps to convert to ACME format:
   as.s
   ashelp.s
   bcode.s
-  cp.s
   fx.s
   kar.s
   more.s

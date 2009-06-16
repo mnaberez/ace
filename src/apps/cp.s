@@ -1,19 +1,23 @@
 ;*** cp program ***
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@0:cp"
+!src "../system/acehead.s"
+!to "../../build/cp", cbm
+!convtab pet
+
+*= aceAppAddress
 
 jmp copymain
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 ;*** global declarations
 
 libwork = $60
 chrQuote = $22
-overwriteAllFlag .buf 1
-abortFlag .buf 1
+overwriteAllFlag = *
+   !fill 1
+abortFlag = *
+   !fill 1
 
 copyBufferPtr    = 2 ;(2)
 copyBufferLength = 4 ;(2)
@@ -101,10 +105,10 @@ copyUsageError = *
    jsr fputs
    rts
    copyUsageErrorMsg = *
-   .asc "usage: cp fromfile tofile"
-   .byte chrCR
-   .asc "       cp fromfile1 from2 ...fromN todir"
-   .byte chrCR,0
+   !pet "usage: cp fromfile tofile"
+   !byte chrCR
+   !pet "       cp fromfile1 from2 ...fromN todir"
+   !byte chrCR,0
 
 copyfile = *
    ;** open files
@@ -155,10 +159,11 @@ copyfileOutput = *
 
 copyAskOverwrite = *  ;() : .CS=quit, .EQ=yes, .NE=no
    lda overwriteAllFlag
-   beq +
+   beq .cao1
    lda #0
    rts
-/  lda #<copyAskOverwriteMsg
+.cao1:
+   lda #<copyAskOverwriteMsg
    ldy #>copyAskOverwriteMsg
    jsr puts
    lda copyOutName
@@ -169,7 +174,7 @@ copyAskOverwrite = *  ;() : .CS=quit, .EQ=yes, .NE=no
    jsr puts
    jsr getchar
    cmp #chrCR
-   beq -
+   beq .cao1
    pha
 -  jsr getchar
    cmp #chrCR
@@ -196,12 +201,12 @@ copyAskOverwrite = *  ;() : .CS=quit, .EQ=yes, .NE=no
 +  clc
    rts
    copyAskOverwriteMsg = *
-   .asc "Overwrite "
-   .byte chrQuote,0
+   !pet "Overwrite "
+   !byte chrQuote,0
    copyAskOverwriteMsg2 = *
-   .byte chrQuote
-   .asc " (y/n/a/q)? "
-   .byte 0
+   !byte chrQuote
+   !pet " (y/n/a/q)? "
+   !byte 0
 
 copyRemoveOutfile = *
    lda copyOutName
@@ -222,7 +227,7 @@ copyFileContents = *
    ldy copyBufferLength+1
    ldx copyInFile
    jsr read
-   bcs ++
+   bcs .cfc1
    beq +
    pha
    tya
@@ -236,6 +241,7 @@ copyFileContents = *
    bcc -
    bcs copyFileError
 +  rts
+.cfc1:
 +  jmp copyFileError
    
    copyOpenError = *
@@ -276,18 +282,19 @@ copyFileContents = *
    jsr fputs
    rts
 
-   cpNumbuf .buf 12
+   cpNumbuf = *
+      !fill 12
    copyOpenErrorMsg1 = *
-   .asc "Error opening file "
-   .byte chrQuote
-   .byte 0
+      !pet "Error opening file "
+      !byte chrQuote
+      !byte 0
    copyOpenErrorMsg2 = *
-   .byte chrQuote
-   .asc ", code "
-   .byte 0
+      !byte chrQuote
+      !pet ", code "
+      !byte 0
    copyOpenErrorMsg3 = *
-   .byte chrCR
-   .byte 0
+      !byte chrCR
+      !byte 0
 
    copyFileError = *
    lda #<copyFileErrorMsg
@@ -295,9 +302,9 @@ copyFileContents = *
    ldx #stderr
    jmp fputs
    copyFileErrorMsg = *
-   .asc "File data error!"
-   .byte chrCR
-   .byte 0
+      !pet "File data error!"
+      !byte chrCR
+      !byte 0
 
 copyToDir = *
    lda baseArg
@@ -346,8 +353,8 @@ copyToDirStopped = *
    jmp aceProcExit
 
    stoppedMsg = *
-   .asc "<Stopped>"
-   .byte chrCR,0
+   !pet "<Stopped>"
+   !byte chrCR,0
 
 copyFileToDir = *
    ;** generate output file name
@@ -390,7 +397,8 @@ copyFileToDir = *
    jsr copyfile
    rts
 
-nameSpace .buf 1
+nameSpace = *
+   !fill 1
 
 copyToDirStatus = *
    lda copyInName+0
@@ -453,7 +461,8 @@ putc = *
    lda #1
    ldy #0
    jmp write
-   putcBuffer .buf 1
+   putcBuffer = *
+      !fill 1
 
 getchar = *
    ldx #stdin
@@ -470,7 +479,8 @@ getc = *
    rts
 +  sec
    rts
-   getcBuffer .buf 1
+   getcBuffer = *
+      !fill 1
 
 ;===copy library===
 getBufferParms = *
