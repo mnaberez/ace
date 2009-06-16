@@ -1,12 +1,13 @@
 ;*** mkdir program
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@0:mkdir"
+!src "../system/acehead.s"
+!to "../../build/mkdir", cbm
+
+*= aceAppAddress
 
 jmp main
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 ;*** global declarations
 
@@ -42,7 +43,8 @@ putc = *
    lda #1
    ldy #0
    jmp write
-   putcBuffer .buf 1
+putcBuffer = *
+   !fill 1
 
 getchar = *
    ldx #stdin
@@ -59,7 +61,8 @@ getc = *
    rts
 +  sec
    rts
-   getcBuffer .buf 1
+getcBuffer = *
+   !fill 1
 
 getarg = *
    sty zp+1
@@ -100,8 +103,8 @@ usage = *
    jmp puts
 
 usageMsg = *
-   .asc "Usage: mkdir flatDirName ..."
-   .byte chrCR,0
+   !pet "Usage: mkdir flatDirName ..."
+   !byte chrCR,0
 
 enoughArgs = *
    lda #1
@@ -140,8 +143,8 @@ stopped = *
    ldy #>stoppedMsg
    jmp eputs
    stoppedMsg = *
-   .asc "<stopped>"
-   .byte chrCR,0
+   !pet "<stopped>"
+   !byte chrCR,0
 
 error = *
    lda #<errorMsg1
@@ -155,10 +158,10 @@ error = *
    jmp eputs
 
 errorMsg1 = *
-   .asc "Error attempting make dir "
-   .byte chrQuote,0
+   !pet "Error attempting make dir "
+   !byte chrQuote,0
 errorMsg2 = *
-   .byte chrQuote,chrCR,0
+   !byte chrQuote,chrCR,0
 
 echo = *
    lda #<echoMsg1
@@ -172,11 +175,11 @@ echo = *
    jmp eputs
 
 echoMsg1 = *
-   .asc "Making directory "
-   .byte chrQuote,0
+   !pet "Making directory "
+   !byte chrQuote,0
 
 echoMsg2 = *
-   .byte chrQuote,chrCR,0
+   !byte chrQuote,chrCR,0
 
 ;===the end===
 end = *

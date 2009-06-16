@@ -9,11 +9,9 @@ Apps to convert to ACME format:
   grep.s
   kar.s
   keymat.s
-  mkdir.s
   more.s
   mousetest.s
   mv.s
-  rmdir.s
   sort.s
   term.s
   tr.s
