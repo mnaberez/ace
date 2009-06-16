@@ -2,13 +2,14 @@
 
 ;this file is in ACE-assembler format
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@0:mousetest"
+!src "../system/acehead.s"
+!to "../../build/mousetest", cbm
+
+*= aceAppAddress
 
 jmp main
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 IMAGE_COLS = 5
 IMAGE_ROWS = 11
@@ -92,17 +93,17 @@ main = *
    jmp again
 
 msg1 = *
-   .asc "mouseX="
-   .byte 0
+   !pet "mouseX="
+   !byte 0
 msg2 = *
-   .asc ", mouseY="
-   .byte 0
+   !pet ", mouseY="
+   !byte 0
 msg3 = *
-   .asc ", buttons="
-   .byte 0
+   !pet ", buttons="
+   !byte 0
 msg4 = *
-   .asc "       "
-   .byte chrBOL,0
+   !pet "       "
+   !byte chrBOL,0
 
 ;******** standard library ********
 puts = *
@@ -129,8 +130,10 @@ putchar = *
    ldx xsave
    ldy ysave
    rts
-   xsave .buf 1
-   ysave .buf 1
+   xsave = *
+      !fill 1
+   ysave = *
+      !fill 1
 
 putc = *
    sta putcBuffer
@@ -141,7 +144,8 @@ putc = *
    lda #1
    ldy #0
    jmp write
-   putcBuffer .buf 1
+   putcBuffer = *
+      !fill 1
 
 checkStop = *
    jsr aceConStopkey
@@ -151,9 +155,9 @@ checkStop = *
    rts
 +  jsr aceConGetkey
    cmp #"q"
-   beq +
+   beq ++
    rts
-+  jsr aceGrExit
+++ jsr aceGrExit
    lda #<stoppedMsg
    ldy #>stoppedMsg
    jsr eputs
@@ -161,9 +165,9 @@ checkStop = *
    ldx #0
    jmp aceProcExit
    stoppedMsg = *
-   .byte chrCR
-   .asc "<Stopped>"
-   .byte chrCR,0
+      !byte chrCR
+      !pet "<Stopped>"
+      !byte chrCR,0
 
 putnum = *
    ldy #<numbuf
@@ -176,7 +180,8 @@ putnum = *
    ldy #>numbuf
    jsr puts
    rts
-   numbuf .buf 11
+   numbuf = *
+      !fill 11
 
 RedisplayImage = *  ;( mouseX, mouseY )
    ldx #1
@@ -291,9 +296,12 @@ grOpClip = *
 +  pla
    jmp aceGrOp
 
-curImage .buf 1
-pHi      .buf 1
-cHi      .buf 1
+curImage = *
+   !fill 1
+pHi = *
+   !fill 1
+cHi = *
+   !fill 1
 
 InitImages = *
    lda #1
@@ -356,21 +364,22 @@ speedTest = *
    jsr aceConPutchar
    rts
 
-images .word bmImage0,bmImage1,bmImage2,bmImage3
-       .word bmImage4,bmImage5,bmImage6,bmImage7
+images = *
+   !word bmImage0,bmImage1,bmImage2,bmImage3
+   !word bmImage4,bmImage5,bmImage6,bmImage7
 
 bmImage0 = *  ;cols=5, rows=11
-   .byte %11111111,%11100000,%00000000,%11111111,%00000000
-   .byte %11111111,%10000000,%00000000,%00000011,%00000000
-   .byte %11111111,%10000001,%10000000,%00000011,%00000000
-   .byte %11111111,%11000001,%10000000,%00000011,%00000000
-   .byte %11100011,%11100001,%10000000,%00000000,%00000000
-   .byte %10000000,%11001111,%11111100,%00000000,%00000000
-   .byte %00000000,%00000001,%10000000,%00000000,%00000000
-   .byte %11000000,%00000001,%10000000,%00000011,%00000000
-   .byte %11000000,%00000001,%10000000,%00000011,%00000000
-   .byte %11000000,%00000000,%00000000,%00000011,%00000000
-   .byte %11111111,%00000000,%00000000,%11111111,%00000000
+   !byte %11111111,%11100000,%00000000,%11111111,%00000000
+   !byte %11111111,%10000000,%00000000,%00000011,%00000000
+   !byte %11111111,%10000001,%10000000,%00000011,%00000000
+   !byte %11111111,%11000001,%10000000,%00000011,%00000000
+   !byte %11100011,%11100001,%10000000,%00000000,%00000000
+   !byte %10000000,%11001111,%11111100,%00000000,%00000000
+   !byte %00000000,%00000001,%10000000,%00000000,%00000000
+   !byte %11000000,%00000001,%10000000,%00000011,%00000000
+   !byte %11000000,%00000001,%10000000,%00000011,%00000000
+   !byte %11000000,%00000000,%00000000,%00000011,%00000000
+   !byte %11111111,%00000000,%00000000,%11111111,%00000000
 
 bmImage1 = *
 bmImage2 = bmImage1+IMAGE_SIZE

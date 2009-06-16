@@ -6,7 +6,6 @@ Apps to convert to ACME format:
   fx.s
   kar.s
   more.s
-  mousetest.s
   sort.s
   term.s
   tr.s
