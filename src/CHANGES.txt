@@ -1,0 +1,6 @@
+Next Release
+
+ - Fixed usage message in crc32a to display the command name
+   as "crc32a" instead of "crc32".
+
+Release 16
