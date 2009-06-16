@@ -1,12 +1,14 @@
 ;*** sort program - by Craig Bruce, started 13-Jun-93
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@0:sort"
+!src "../system/acehead.s"
+!to "../../build/sort", cbm
+!convtab pet
+
+*= aceAppAddress
 
 jmp main
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 ;*** global declarations
 
@@ -17,9 +19,12 @@ maxLineLen = 2049
 true = $ff
 false = $00
 
-reverseFlag     .buf 1
-ignoreCaseFlag  .buf 1
-keyPosition     .buf 1
+reverseFlag = *
+   !fill 1
+ignoreCaseFlag = *
+   !fill 1
+keyPosition = *
+   !fill 1     
 
 ;******** standard library ********
 puts = *
@@ -49,7 +54,8 @@ putc = *
    lda #1
    ldy #0
    jmp write
-   putcBuffer .buf 1
+   putcBuffer = *
+      !fill 1
 
 getarg = *
    sty zp+1
@@ -96,8 +102,8 @@ usage = *
    jmp eputs
 
 usageMsg = *
-   .asc "usage: sort [-[i][v]] [+column] file ..."
-   .byte chrCR,0
+   !pet "usage: sort [-[i][v]] [+column] file ..."
+   !byte chrCR,0
 
 enoughArgs = *
    ;** main loop
@@ -195,8 +201,8 @@ stopped = *
    lda #1
    jmp aceProcExit
    stoppedMsg = *
-   .asc "<Stopped>"
-   .byte chrCR,0
+   !pet "<Stopped>"
+   !byte chrCR,0
 
 error = *
    lda #<errorMsg1
@@ -209,10 +215,10 @@ error = *
    ldy #>errorMsg2
    jmp eputs
    errorMsg1 = *
-   .asc "Error reading file "
-   .byte chrQuote,0
+   !pet "Error reading file "
+   !byte chrQuote,0
    errorMsg2 = *
-   .byte chrQuote,chrCR,0
+   !byte chrQuote,chrCR,0
 
 bufPtr = 10   ;(1)
 bufCount = 12 ;(1)
@@ -544,12 +550,18 @@ echoStatus = *
 
 mallocWork = $60
 
-mallocHead   .buf 4
-tpaFreeFirst .buf 1
-tpaFreeMin   .buf 1
-tpaFreePages .buf 1
-tpaAreaStart .buf 1
-tpaAreaEnd   .buf 1
+mallocHead = *
+   !fill 4
+tpaFreeFirst = *
+   !fill 1
+tpaFreeMin = *
+   !fill 1
+tpaFreePages = *
+   !fill 1
+tpaAreaStart = *
+   !fill 1
+tpaAreaEnd = *
+   !fill 1
 
 ;*** mallocInit()
 
@@ -589,7 +601,8 @@ mallocInit = *
    bcc -
 +  rts
 
-libPages .buf 1
+libPages = *
+   !fill 1
 
 libPageAlloc = *  ;( .A=pages ) : [mp]
    sta libPages
@@ -614,11 +627,12 @@ libPageAlloc = *  ;( .A=pages ) : [mp]
    jmp aceProcExit
 
    nomemMsg = *
-   .byte chrCR
-   .asc "Insufficient memory, aborting."
-   .byte chrCR,0
+   !byte chrCR
+   !pet "Insufficient memory, aborting."
+   !byte chrCR,0
 
-newmax   .buf 1
+newmax = *
+   !fill 1
 
 tpaPageAlloc = *  ;( libPages ) : [mp]
    lda libPages
@@ -627,46 +641,53 @@ tpaPageAlloc = *  ;( libPages ) : [mp]
    ;** first free
    ldx tpaFreeFirst
    lda tpaFreemap,x
-   beq ++
--  inx
+   beq .tpa3
+.tpa1:
+   inx
    beq tpaFreemapFull
    lda tpaFreemap,x
-   bne -
+   bne .tpa1
    stx tpaFreeFirst
-   jmp ++
+   jmp .tpa3
    tpaFreemapFull = *
    lda libPages
    cmp tpaFreeMin
-   bcs +
+   bcs .tpa2
    sta tpaFreeMin
-+  sec
+.tpa2:
+   sec
    rts
 
    ;** search
-+  dex
--  ldy libPages
--  inx
+.tpa3:
+   dex
+.tpa4:
+   ldy libPages
+.tpa5:
+   inx
    beq tpaFreemapFull
    lda tpaFreemap,x
-   bne --
+   bne .tpa4
    dey
-   bne -
+   bne .tpa5
 
    ;** allocate
    stx newmax
    ldy libPages
    lda #$41
--  sta tpaFreemap,x
+.tpa6:
+   sta tpaFreemap,x
    dex
    dey
-   bne -
+   bne .tpa6
    inx
    cpx tpaFreeFirst
-   bne +
+   bne .tpa7
    ldy newmax
    iny
    sty tpaFreeFirst
-+  sec
+.tpa7:
+   sec
    lda tpaFreePages
    sbc libPages
    sta tpaFreePages
@@ -679,7 +700,8 @@ tpaPageAlloc = *  ;( libPages ) : [mp]
    clc
    rts
 
-mallocLenSave .buf 3
+mallocLenSave = *
+   !fill 3
 
 malloc = *
    sta mallocLenSave+0
