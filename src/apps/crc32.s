@@ -1,12 +1,13 @@
 ;*** crc32b program - by Craig Bruce - 14-Oct-93
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@0:crc32"
+!src "../system/acehead.s"
+!to "../../build/crc32", cbm
+
+*= aceAppAddress
 
 jmp crcMain
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 ;*** global declarations
 
@@ -43,7 +44,8 @@ putc = *
    lda #1
    ldy #0
    jmp write
-   putcBuffer .buf 1
+   putcBuffer = *
+      !fill 1
 
 getchar = *
    ldx #stdin
@@ -60,7 +62,8 @@ getc = *
    rts
 +  sec
    rts
-   getcBuffer .buf 1
+   getcBuffer = *
+      !fill 1
 
 getarg = *
    sty zp+1
@@ -109,9 +112,9 @@ crcUsage = *
    jmp eputs
 
 crcUsageMsg = *
-   .asc "Usage: crc32 file1 file2 ... fileN"
-   .byte chrCR
-   .byte 0
+   !pet "Usage: crc32 file1 file2 ... fileN"
+   !byte chrCR
+   !byte 0
 
 crcEnoughArgs = *
    ;** get input buffer length
@@ -160,8 +163,8 @@ checkstop = *
    ldx #0
    jmp aceProcExit
    stoppedMsg = *
-   .asc "<Stopped>"
-   .byte chrCR,0
+   !pet "<Stopped>"
+   !byte chrCR,0
 
 crcError = *
    lda #<crcErrorMsg1
@@ -175,11 +178,11 @@ crcError = *
    jmp eputs
 
 crcErrorMsg1 = *
-   .asc "Error reading file "
-   .byte chrQuote,0
+   !pet "Error reading file "
+   !byte chrQuote,0
 
 crcErrorMsg2 = *
-   .byte chrQuote,chrCR,0
+   !byte chrQuote,chrCR,0
 
 crc32 = *
    ;** open file
@@ -281,10 +284,10 @@ putHex = *
    rts
 
 resMsg1 = *
-   .asc "crc32 = 12345678 for "
-   .byte chrQuote,0
+   !pet "crc32 = 12345678 for "
+   !byte chrQuote,0
 resMsg2 = *
-   .byte chrQuote,chrCR,0
+   !byte chrQuote,chrCR,0
 
 ;** poly = 0xEDB88320L;
 ;** for (i=0; i<256; i++) {
@@ -302,7 +305,7 @@ resMsg2 = *
 crcGen = *
    ;** generate CRC table at runtime
    ldy #0
--  ldx #0
+-- ldx #0
    sty crc+0
    stx crc+1
    stx crc+2

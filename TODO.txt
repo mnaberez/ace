@@ -3,8 +3,6 @@ Apps to convert to ACME format:
   ashelp.s
   bcode.s
   cp.s
-  crc32.s
-  crc32a.s
   fx.s
   grep.s
   kar.s
