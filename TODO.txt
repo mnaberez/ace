@@ -12,7 +12,6 @@ Apps to convert to ACME format:
   unbcode.s
   unbcodehelp.s
   unkar.s
-  uudecode.s
   uuencode.s
   vbm.s
   vbmpr.s

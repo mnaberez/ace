@@ -1,12 +1,14 @@
 ;*** uudecode program
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@0:uudecode"
+!src "../system/acehead.s"
+!to "../../build/uudecode", cbm
+!convtab pet
+
+*= aceAppAddress
 
 jmp uudecodeMain
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 ;*** global declarations
 
@@ -15,8 +17,10 @@ libwork = $60
 chrLF = $0a
 chrQuote = $22
 
-asciiFile .buf 1
-temp .buf 1
+asciiFile = *
+   !fill 1
+temp = *
+   !fill 1
 
 ;******** standard library ********
 puts = *
@@ -46,7 +50,8 @@ putc = *
    lda #1
    ldy #0
    jmp write
-   putcBuffer .buf 1
+   putcBuffer = *
+      !fill 1
 
 getchar = *
    ldx #stdin
@@ -63,7 +68,8 @@ getc = *
    rts
 +  sec
    rts
-   getcBuffer .buf 1
+   getcBuffer = *
+      !fill 1
 
 getarg = *
    sty zp+1
@@ -97,8 +103,8 @@ checkstop = *
    ldx #0
    jmp aceProcExit
    stoppedMsg = *
-   .asc "<Stopped>"
-   .byte chrCR,0
+   !pet "<Stopped>"
+   !byte chrCR,0
 
 ;===uudecode===
 uudArg = 2
@@ -119,8 +125,8 @@ uudUsage = *
    jmp puts
 
 uudUsageMsg = *
-   .asc "Usage: uudecode file1 file2 ... fileN"
-   .byte chrCR,0
+   !pet "Usage: uudecode file1 file2 ... fileN"
+   !byte chrCR,0
 
 uudEnoughArgs = *
    ;** get input buffer length
@@ -170,10 +176,10 @@ uudError = *
    jmp eputs
 
 uudErrorMsg1 = *
-   .asc "Error attempting to uudecode file "
-   .byte chrQuote,0
+   !pet "Error attempting to uudecode file "
+   !byte chrQuote,0
 uudErrorMsg2 = *
-   .byte chrQuote,chrCR,0
+   !byte chrQuote,chrCR,0
 
 uudEcho = *
    lda #<uudEchoMsg1
@@ -187,13 +193,13 @@ uudEcho = *
    jmp eputs
 
 uudEchoMsg1 = *
-   .asc "uudecoding file "
-   .byte chrQuote,0
+   !pet "uudecoding file "
+   !byte chrQuote,0
 
 uudEchoMsg2 = *
-   .byte chrQuote
-   .asc "..."
-   .byte chrCR,0
+   !byte chrQuote
+   !pet "..."
+   !byte chrCR,0
 
 bufPtr = 8
 bufCount = 10
@@ -263,9 +269,9 @@ uudecodeBody = *
    jmp processBegin
 
    petsciiBegin = *
-   .asc "begin "
+      !pet "begin "
    asciiBegin = *
-   .byte $62,$65,$67,$69,$6e,$20
+      !byte $62,$65,$67,$69,$6e,$20
    
    ;** process "begin" line
    processBegin = *
@@ -319,8 +325,8 @@ uudecodeBody = *
    jmp uudSearchLine
 
 badCharsMsg = *
-   .asc "warning: bad characters in line; ignoring line."
-   .byte chrCR,0
+   !pet "warning: bad characters in line; ignoring line."
+   !byte chrCR,0
 
 ;%%%
 makePetsciiName = *
@@ -384,13 +390,13 @@ echoExtractName = *
    jmp eputs
 
 echoExtractMsg1 = *
-   .asc "extracting file "
-   .byte chrQuote,0
+   !pet "extracting file "
+   !byte chrQuote,0
 
 echoExtractMsg2 = *
-   .byte chrQuote
-   .asc "..."
-   .byte chrCR,0
+   !byte chrQuote
+   !pet "..."
+   !byte chrCR,0
 
 reportOpenError = *
    lda zp
@@ -402,8 +408,8 @@ reportOpenError = *
    rts
 
    reportOpenErrorMsg = *
-   .asc ": cannot open; skipping this file."
-   .byte chrCR,0
+   !pet ": cannot open; skipping this file."
+   !byte chrCR,0
 
 scratchFile = *
    lda #<scratchFileMsg1
@@ -435,14 +441,15 @@ scratchFile = *
    rts
 
    scratchFileMsg1 = *
-   .asc "Overwrite existing file "
-   .byte chrQuote,0
+      !pet "Overwrite existing file "
+      !byte chrQuote,0
    scratchFileMsg2 = *
-   .byte chrQuote
-   .asc "? "
-   .byte 0
+      !byte chrQuote
+      !pet "? "
+      !byte 0
 
-convertFill .buf 1
+convertFill = *
+   !fill 1
 convertLen = 15
 uuConvertLine = *
    lda #0
@@ -500,7 +507,7 @@ uuConvertChar = *
 -  clc
    lda #0
    rts
-+  cmp #"`"
++  cmp #$c0  ;#"`"
    beq -
    bcs +
    sec
@@ -581,8 +588,10 @@ uuWriteLine = *
    rts
 
 getlinePos = 14
-hitLastLine .buf 1
-lastLineTerminator .buf 1
+hitLastLine = *
+   !fill 1
+lastLineTerminator = *
+   !fill 1
 
 getline = *
    lda hitLastLine
