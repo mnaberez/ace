@@ -1,0 +1,185 @@
+
+<HTML>
+<TITLE>ACE FX Documentation</TITLE>
+<BODY BGCOLOR="#d0d0dd" TEXT="#000000" LINK="#d02030" VLINK="#4030b0">
+
+<H1>ACE FX Documentation</H1>
+
+<P>by Craig Bruce -- for version 1.00 -- December 17, 1995.
+<HR>
+<PRE>
+1. INTRODUCTION
+
+If you use your Commodore for telecommunications, then you are basically
+interested in two things: using your C= to emulate a terminal for interactive
+stuff, and using modem-file-transfer protocols to upload and download files
+from and to your Commodore.
+
+This document describes a custom upload/download protocol that was designed
+for use with the ACE-128/64 system and is freely available to anyone who
+wants it.  While this protocol non-standard, it blows the doors off of all
+other protocols available for Commodore computers, even though it uses a
+simple "stop-and-wait" acknowledgement scheme.  There are two reasons for
+its speed: the fast device drivers available with ACE, and its large packet
+size, up to about 14K (although this could be significantly larger if ACE's
+memory usage were reorganized).
+
+The name of the protocol is "Craig's File eXchange Protocol", or just "FX" for
+short.  It is "file exchange" rather than "upload" or "download" because you
+will use the same activation of the program to both upload and download all of
+the files you name.
+
+One note about this document: it is an abbreviated form of an article written
+by me in C= Hacking #10.  Refer there for an in-depth discussion of the
+implementation details.
+
+2. USAGE
+
+The current implementation of FX consists of a "client" program for you to run
+on your Commodore computer and a "server" program that you run on your Unix
+host.  There is currently no server program for any other platform, but the
+necessary changes to the C-language program wouldn't be too hard.  The client
+program is written in 6502 assembler, of course (for the ACE-assembler to be
+specific).
+
+FX is an external program from the terminal program, so (for now) to activate
+FX, you have to exit from the terminal program and enter the FX command line,
+exchange the files, and then re-enter the terminal program from the command
+line.
+
+When you run FX, you will activate the Server program first on your Unix host
+and then exit the terminal program and run the Client program on your
+Commodore.  You run the command "fx" on both the client and server machines,
+which may be a little confusing (but I think you'll get used to it), and name
+the files that you want to have transferred as arguments to the command on the
+machine that you want to transfer the files FROM.  The usage of the "fx"
+command is as follows:
+
+fx [-dlvV78k] [-m maximums] [-f argfile] [[-b] binfile ...] [-t textfile ...]
+
+-d = debug mode
+-l = write to log file ("fx.log")
+-v = verbose log/debug mode
+-V = extremely verbose log/debug mode
+-7 = use seven-bit encoding
+-8 = use seven-bit encoding
+-k = use 1K packet sizes for all transfer types
+-m = set maximum packet sizes; maximums = ulbin/ultxt/dlbin/dltxt (bytes)
+-f = take arguments one-per-line from given argfile
+-b = binary files prefix
+-t = text files prefix
+-help = help
+
+well, for the server, anyway.  The client program doesn't have the more
+exotic options.  The "-d", "-l", "-v", and "-V" options are available only
+on the Server program, and are for debugging purposes only.
+
+The "-7" option tells the protocol to use only 7-bit data.  I.e., it tells it
+to not use the 8th bit position in the data is transmitted.  This is useful if
+you are forced into the humiliation of only being able to use a 7-bit channel
+to your Unix host.  You need only need to give this option on either the
+client or the host command line and the other side will be informed.  It may
+be useful to create an alias for this command with all of your options set to
+what you want them to be.  The "-8" option is default.
+
+The protocol has the capacity to use different packet sizes for four types of
+file-transfer situations: uploading binary data, uploading text, downloading
+binary data, and downloading text.  These are useful distinctions, since your
+host may or may not be able to handle the larger packet sizes without losing
+bytes (your Commodore, of course, can handle the larger packet sizes with no
+problems).
+
+In determining which packet size to use for a file transfer (where the type of
+transfer is known), the protocol finds that largest packet size that both the
+client and the server can handle and then take the minimum of these two
+values.  The defaults for the client are all the same: the maximum amount of
+program-area memory that it can use, about 18K.  For the server program, I
+have programmed in default maximum uploading packet sizes of 1K and maximum
+downloading packet sizes of 64K-1.  You can change these defaults in the C
+program easily by changing some "#define"s.
+
+The "-m" option allows you to manually set the default packet sizes for a
+transfer.  The argument following the "-m" flag should have four numbers
+with slashes between them, which give the maximum ulbin/ultxt/dlbin/dltxt
+packet sizes, respectively.  Note that the packet sizes only include the
+size of the user data encoded into packets and not the control or quoting
+information (below).  The "-k" command-line option says to use 1K packet
+sizes for everything, which may be necessary if the hardware flow control
+isn't set up properly all the way from host to Commie.
+
+The "-f" option on the server allows you to read arguments from a file rather
+than the command line.  This is useful if want to generate and edit the list
+of files to download before you run the FX command.  It's also useful if you
+don't want other users to see the names of the files that you are
+downloading.  The name of the file comes in the first argument following the
+"-f" flag and the arguments are put into this file one-per-line.  You can put
+in "-" options in addition to filenames if you wish (like "-t" and "-b").
+This option is not supported on the client program.
+
+Finally come the "-b", "-t", and filename arguments.  The "-b" argument tells
+FX that all of the following filenames (until the next "-t" option) are binary
+files and the "-t" argument says that the following filenames are all of text
+files.  You can use as many "-b" and "-t" arguments as you want.  If you don't
+use any, then all of the files you name will be assumed to be binary files.
+
+For each filename you give on a command line, that file will be transferred
+from that machine to the other machine.  On both Unix and ACE, you can use
+wildcards in your filenames, of course, to transfer groups of files.
+
+The client program controls the file exchange, and it uploads all of its files
+first and then asks the server if the server has any files to be downloaded.
+When the exchange is completed, both the client and server FX programs will
+exit and you will find yourself back on the command lines in both
+environments.  Re-enter the terminal program to continue with your online
+session.  If something goes very wrong during a transfer or if you decide that
+you don't really want to transfer any files after activating the server
+program, you can type three Ctrl-X's to abort the server.  This is the same as
+for the X-modem protocol.
+
+3. PERFORMANCE
+
+Here is my performance testing so far, using my USR Sportster modem over a
+14.4-kbps phone connection, with a 38.4-kbps link to my modem from my C128, to
+my usual Unix host:
+
+Using FX to/from the ACE ramdisk, REU:
+
+Download 156,260 bytes of ~text:        time= 54.1 sec, rate=2888 cps.
+Download 151,267 bytes of tabular text: time= 45.9 sec, rate=3296 cps.
+Download 141,299 bytes of JPEG image:   time= 92.5 sec, rate=1528 cps.
+Upload   156,260 bytes of ~text:        time= 57.4 sec, rate=2722 cps.
+Upload   151,267 bytes of tabular text: time= 45.3 sec, rate=3339 cps.
+Upload   141,299 bytes of JPEG image:   time= 95.0 sec, rate=1487 cps.
+
+Using FX to/from my CMD Hard Drive:
+
+Download 156,260 bytes of ~text:        time= 83.4 sec, rate=1874 cps.
+Download 151,267 bytes of tabular text: time= 75.4 sec, rate=2006 cps.
+Download 141,299 bytes of JPEG image:   time=118.2 sec, rate=1195 cps.
+Upload   156,260 bytes of ~text:        time= 77.9 sec, rate=2006 cps.
+Upload   151,267 bytes of tabular text: time= 66.2 sec, rate=2285 cps.
+Upload   141,299 bytes of JPEG image:   time=114.2 sec, rate=1237 cps.
+
+Using DesTerm-128 v2.00 to/from my CMD Hard Drive, Y-Modem:
+
+Download 156,260 bytes of ~text:        time=189.5 sec, rate= 824 cps.
+Download 151,267 bytes of tabular text: time=180.4 sec, rate= 839 cps.
+Download 141,299 bytes of JPEG image:   time=199.9 sec, rate= 707 cps.
+Upload   156,260 bytes of ~text:        time=255.1 sec, rate= 611 cps.
+Upload   151,267 bytes of tabular text: time=238.6 sec, rate= 634 cps.
+Upload   141,299 bytes of JPEG image:   time=233.0 sec, rate= 606 cps.
+
+Using NovaTerm-64 v9.5 to my CMD Hard Drive, Z-Modem, C64 mode:
+
+Download 156,260 bytes of ~text:        time=245.8 sec, rate= 636 cps.
+Download 151,267 bytes of tabular text: time=230.0 sec, rate= 658 cps.
+Download 141,299 bytes of JPEG image:   time=262.6 sec, rate= 538 cps.
+
+(There is no Z-Modem uploading support)
+
+So there you have it: my simple protocol blows the others away.  QED.
+</PRE>
+<P><HR>
+[<A HREF="index.shtml">Back to the ACE Page</A>]
+</BODY>
+</HTML>

@@ -1,0 +1,323 @@
+<HTML>
+<TITLE>ACEterm Documentation</TITLE>
+<BODY BGCOLOR="#d0d0dd" TEXT="#000000" LINK="#d02030" VLINK="#4030b0">
+
+<H1>ACEterm Documentation</H1>
+
+<P>by Craig Bruce -- for version 1.01 -- December 17, 1995.
+<HR>
+<PRE>
+1. INTRODUCTION
+
+This is a simple VT-100 terminal-emulation program.  To start it up, type:
+
+term
+
+at the command-line prompt.  When it starts, it will bring up a screen with
+24 display lines and a status line.  (You will see slightly different things
+depending on the number of display lines that the window you start the
+terminal program in; an 27-row VDC screen gives the best results).  The
+status line will display the program name and version (the official name is
+"ACEterm"), the baud rate, the parity (et al.) setting, the terminal
+emulation type, and the capture buffer-size and modification status, the
+amount of dynamic memory free, and which key to press for help.
+
+The capture buffer, when active, stores every byte received from the serial
+port verbatim (including escape sequences, etc.) and can grow to be as large
+as the amount of free "dynamic" memory you have available.  My system has
+12.5 Megs of the stuff available, and that is how large my capture buffer
+can get.  The size of the capture buffer is reported in bytes on the status
+line (as is the amount of dynamic memory free).
+
+The capture buffer uses "dynamic memory" exclusively for storing data (it
+doesn't use any memory in the program area for this), so you will not have
+much luck trying to use this feature on an unexpanded C64, which will only
+give you a little bit of dynamic memory to use (more if you disable the
+Soft-80 display or decrease the program-area limit).  Also, this feature
+will drop lots of characters if your modem doesn't have RTS/CTS hardware
+flow control.  If your modem has hardware flow control but you lose
+characters anyway, then try fiddling with the "RTS activation delay" field
+in the system configuration.  You can check if you are losing characters by
+pressing Ctrl-O and checking the overrun count.  The program currently has
+only one capture buffer, but the design allows for multiple capture buffers
+(if such a thing whould be useful).  The capture buffer is the only real
+"feature" of the terminal program, other than the VT-100 emulation.
+
+There are three terminal-emulation modes supported: VT-100, GlassTTY, and
+Verbatim.  GlassTTY will not interpret any of the escape sequences that it
+receives, and Verbatim mode will display every character that it receives
+and will not even interpret control characters like carriage return.  In
+this mode, the characters will be shown in reverse according to the ASCII
+character (printable characters will be translated as normal).
+
+All of the important VT-100 escape sequence are supported (including the
+Insert-Line and Delete-Line sequences of the VT-102), so you shouldn't have
+too many problems.  One thing to note: the scroll-region doesn't work
+exactly like it does on a VT-100: if the cursor is moved outside of the
+scroll region, then the scroll region will be reset to the entire screen.
+(I don't know if this restriction is of any practical consequence; most
+full-screen programs just use scroll regions temporarily to insert and
+delete lines).  This program has been tested and works perfectly with "vi",
+"emacs", "pine", and "lynx".
+
+In normal operation, you type characters on the keyboard and they are sent
+to the modem, and the characters from the modem are displayed on the
+screen.  This is "full echoplex", and the program doesn't support "half
+echoplex".  The program also doesn't support menu-oriented auto-dialing/
+etc.  features, so you're going to have to send your own "AT" commands to
+your modem by hand (which really isn't much of a bother if you have an
+intelligent modem and it is set up properly (it doesn't take me very long to
+type "atds")).
+
+2. COMMAND KEYS
+
+The following hot keys are supported ("Co-" means "Commodore-" and "Ct-"
+means "Ctrl-"):
+
+Co-A : decrease baud rate
+Co-B : increase baud rate
+Co-E : exit and save capture buffer if modified
+Co-I : help information (also, the HELP key)
+Co-N : name the capture buffer
+Co-O : show operating status of modem driver
+Co-P : change parity: 8N1/7E1
+Co-Q : quit (won't work if buffer is modified)-+
+Co-S : save the capture buffer                 |
+Co-T : set terminal-emulation type             |
+Co-Z : pause terminal flow                     v
+Co-\ : toggle capture-buffer modification status
+Co-_ : compose ISO-8859-1 character
+Co + and Co - : enable(+)/disable(-) the capture buffer
+Ct-1 : clear the capture buffer
+Ct-3 : enter hexadecimal ASCII character code
+F1,F3,F5,F7,Ct-@ to Ct-_ : PF1,PF2,PF3,PF4, ASCII Ctrl codes
+CLR  : clear screen (nothing sent to modem)
+DEL,HOME,BACKARROW : BS,DEL,_(128) / BS,DEL,ESC(64)
+RVS,RVSOFF : reverse screen (128 VDC only)
+STOP : nothing(128) / send TAB character(64)
+
+The capture buffer is named "capturebuf" by default but you can change this
+by using Commodore-N.  You will be prompted to enter a filename on the
+status line.  This name can be a full pathname if you wish.  If the filename
+already exists, then the old file will automatically be overwritten when you
+save the capture buffer.
+
+If the capture buffer has unsaved characters in it, then an asterisk (*)
+will be displayed before the "buf/BUF" field on the status line.  When the
+capture buffer is active, the field will be named "BUF" and when it is
+inactive, "buf".  The contents of the buffer will be retained between
+activations and deactivations.  To clear the capture buffer, use Ctrl-1.
+You cannot clear the capture buffer nor exit from the terminal program if
+the buffer has unsaved characters in it, so you can use Ctrl-\ (british
+pound) to toggle the modification status (or save the buffer with Ctrl-S or
+Ctrl-E).
+
+The Ctrl-O "operating status" of the modem includes the number of characters
+dropped, send, and received.
+
+The Ctrl-Z key allows you to stop the flow of the display immediately.  When
+this key is pressed, ACEterm will stop pulling characters from the modem
+device and will wait for you to press another key.  If the receive buffer
+for the modem fills up, then the device driver will assert hardware flow
+control.  If you have a hardware-flow-controlled connection all the way back
+to your remote host, then no characters will be lost.  For modern remote
+hosts, this mechanism will give you much faster response than the
+now-pretty-much-useless Ctrl-S / Ctrl-Q (Xoff/Xon) mechanism.
+
+The keys DEL, HOME, BACKARROW, and STOP send special characters, depending
+on whether you are using a C128 or C64 keyboard (extended or basic
+keyboard).  The DEL and HOME keys send BackSpace ($08) and Delete ($7f),
+respectively on both keyboards.  The BACKARROW sends an underscore and STOP
+is ignored on a C128 while BACKARROW sends an Escape and STOP sends a Tab on
+the C64.  To get an underscore on a C64, you can press either
+Shift-BACKARROW or Commodore-SPACE.  These keys are not currently
+user-definable (except by modifying and re-assembling the terminal
+program--it is written for the ACE-assembler and the stuff to change is near
+the bottom of the source file), so you'll have to live with these settings
+for the time being.
+
+3. CHARACTER COMPOSITION
+
+ACEterm has two command keys for composing characters:  Ctrl-3 (with the #
+symbol on top) and Commodore-_ (BackArrow).  After pressing the former, you
+will be prompted to enter the two-digit hexadecimal number for the ASCII
+code that you want to send.  After entering the digits, the code will be
+sent just as if you had typed it on the keyboard.  For your convenience, a
+table of all of the ASCII codes (including the ISO-8859-1 codes) is included
+in Appendix A of this document.
+
+Note that in order to display the ISO-8859-1 characters, you have to load
+that characterset into the kernel.  You can do this by either typing:
+
+chrset acechr-iso8859-1
+
+on the command line or by changing the "default character set" field in the
+system configuration to be the string "acechr-iso8859-1".  The factory-set
+default is to use "acechr-commodore" for hysterical raisins (though I
+personally use the ISO set at all times).
+
+The Commodore-BackArrow command will prompt you for a special two-character
+code that represents the ISO-8859-1 character that you want to send.  For
+example, if I wanted to enter Marko Makela's name in the proper way, I would
+enter (angle brackets around keystrokes):
+
+<M><a><r><k><o>< ><M><Co-_><"><a><k><e><l><Co-_><"><a>
+
+The following character-composition sequences are accepted for generating
+ISO-8859-1 characters.  This table was derived from the VT-220 character-
+composition table, but a few extensions are made because the VT-220 table
+didn't include all of the ASCII codes between $A0 and $FF (plus, a couple
+of VT characters are in different positions).
+
+ASC  SEQUENCE                  ASC  SEQUENCE            ASC  SEQUENCE
+---  ---------------           ---  --------            ---  --------
+$a0  <space><space>            $c0  `A                  $e0  `a
+$a1  !!                        $c1  'A                  $e1  'a
+$a2  C/ or C|                  $c2  ^A                  $e2  ^a
+$a3  L- or L=                  $c3  ~A                  $e3  ~a
+$a4  XO or X0                  $c4  "A                  $e4  "a
+$a5  Y- or Y<space>            $c5  *A                  $e5  *a
+$a6  ||                        $c6  AE                  $e6  ae
+$a7  SO or S! or S0            $c7  C,                  $e7  c,
+$a8  ""                        $c8  `E                  $e8  `e
+$a9  CO or C0                  $c9  'E                  $e9  'e
+$aa  A_                        $ca  ^E                  $ea  ^e
+$ab  <<                        $cb  "E                  $eb  "e
+$ac  ~~                        $cc  `I                  $ec  `i
+$ad  --                        $cd  'I                  $ed  'i
+$ae  RO or R0                  $ce  ^I                  $ee  ^i
+$af  __                        $cf  "I                  $ef  "i
+$b0  0^                        $d0  D-                  $f0  %o
+$b1  +-                        $d1  ~N                  $f1  ~n
+$b2  2^                        $d2  `O                  $f2  `o
+$b3  3^                        $d3  'O                  $f3  'o
+$b4  ''                        $d4  ^O                  $f4  ^o
+$b5  /U                        $d5  ~O                  $f5  ~o
+$b6  P!                        $d6  "O                  $f6  "o
+$b7  .^                        $d7  **                  $f7  //
+$b8  ,,                        $d8  O/                  $f8  o/
+$b9  1^                        $d9  `U                  $f9  `u
+$ba  O_                        $da  'U                  $fa  'u
+$bb  >>                        $db  ^U                  $fb  ^u
+$bc  14                        $dc  "U                  $fc  "u
+$bd  12                        $dd  'Y                  $fd  'y
+$be  34                        $de  PP                  $fe  pp
+$bf  ??                        $df  ss                  $ff  "y
+
+You don't have to worry about typing each of these sequences exactly as-is,
+since four transformations are applied in trying to match a two-character
+sequence to an ASCII code: (1) try to match as-is; (2) swap the order of the
+two characters and try to match; (3) swap the order back and alter the case
+of the two characters (letters) and try to match; and (4) swap the altered-
+case characters into reverse order again and try to match.  The first match
+wins, and if no matches work then an error is displayed and nothing is sent
+to the modem.
+
+4. THE FUTURE
+
+Future plans for this terminal program include fixing perfecting the
+emulation implementing a scrollback viewer for the capture buffer, and
+allowing the program to call external programs like the command shell, ZED,
+and file-transfer programs.  The intended file-transfer programs are:
+Raw-Text transfer, FX, and Z-Modem.
+
+The terminal program will be made to accept the following commands in its
+configuration file, ".termrc" (currently no support exists):
+
+- Implement some kind of user-configuration mechanism into ACEterm.
+  Functions: getline, getword, locaseWord, lookupWord.
+  - script ".termrc":
+  - key del $08
+  - key home $7f
+  - key backarrow $5f
+  - key stop null
+  - term vt-100
+  - baud 38400
+  - parm 8N1
+  - string 1 hello there how are you?
+  - readbuf 768
+  - chrset filename
+  - number 1 38400 8N1 886-1234 ccnga
+  - hangup ~~~ATH^m~~~
+  - dial ATDT
+  - call-external yes
+- Extra features for ACEterm: send break, drop DTR, force flow control.
+- Extend the configuration file to 512+ bytes and add new configuration
+  items, including the keymaps, a temporary directory, and a config
+  directory list for ".xxxxrc" files (or use exec path?).  Type of C128
+  internal memory expansion, type of C64 internal memory expansion, type
+  of clock to initially set time from.
+------------------------------------------------------------------------------
+APPENDIX A.
+------------------------------------------------------------------------------
+                   Craig's Handy ASCII Guide (ISO-8859-1)
+
+  0/00 ____NUL____   64/40 _____@_____  128/80 ___________  192/c0 _A`_grave__
+  1/01 ____SOH____   65/41 _____A_____  129/81 ___________  193/c1 _A'_acute__
+  2/02 ____STX____   66/42 _____B_____  130/82 ___________  194/c2 _A^_circum_
+  3/03 ____ETX____   67/43 _____C_____  131/83 ___________  195/c3 _A~_tilde__
+  4/04 ____EOT____   68/44 _____D_____  132/84 ___________  196/c4 _A"_dieres_
+  5/05 ____ENQ____   69/45 _____E_____  133/85 ___________  197/c5 _A__ring___
+  6/06 ____ACK____   70/46 _____F_____  134/86 ___________  198/c6 _AE________
+  7/07 ____BEL____   71/47 _____G_____  135/87 ___________  199/c7 _C,cedilla_
+  8/08 ____BS_____   72/48 _____H_____  136/88 ___________  200/c8 _E`_grave__
+  9/09 ____TAB____   73/49 _____I_____  137/89 ___________  201/c9 _E'_acute__
+ 10/0a ____LF_____   74/4a _____J_____  138/8a ___________  202/ca _E^_circum_
+ 11/0b ____VT_____   75/4b _____K_____  139/8b ___________  203/cb _E"_dieres_
+ 12/0c ____FF_____   76/4c _____L_____  140/8c ___________  204/cc _I`_grave__
+ 13/0d ____CR_____   77/4d _____M_____  141/8d ___________  205/cd _I'_acute__
+ 14/0e ____SO_____   78/4e _____N_____  142/8e ___________  206/ce _I^_circum_
+ 15/0f ____SI_____   79/4f _____O_____  143/8f ___________  207/cf _I"_dieres_
+ 16/10 ____DLE____   80/50 _____P_____  144/90 ___________  208/d0 _D-_Eth_lr_
+ 17/11 ____DC1____   81/51 _____Q_____  145/91 ___________  209/d1 _N~_tilde__
+ 18/12 ____DC2____   82/52 _____R_____  146/92 ___________  210/d2 _O`_grave__
+ 19/13 ____DC3____   83/53 _____S_____  147/93 ___________  211/d3 _O'_acute__
+ 20/14 ____DC4____   84/54 _____T_____  148/94 ___________  212/d4 _O^_circum_
+ 21/15 ____NAK____   85/55 _____U_____  149/95 ___________  213/d5 _O~_tilde__
+ 22/16 ____SYN____   86/56 _____V_____  150/96 ___________  214/d6 _O"_dieres_
+ 23/17 ____ETB____   87/57 _____W_____  151/97 ___________  215/d7 __multiply_
+ 24/18 ____CAN____   88/58 _____X_____  152/98 ___________  216/d8 _O/_slash__
+ 25/19 ____EM_____   89/59 _____Y_____  153/99 ___________  217/d9 _U`_grave__
+ 26/1a ____SUB____   90/5a _____Z_____  154/9a ___________  218/da _U'_acute__
+ 27/1b ____ESC____   91/5b _____[_____  155/9b ___________  219/db _U^_circum_
+ 28/1c ____FS_____   92/5c _____\_____  156/9c ___________  220/dc _U"_dieres_
+ 29/1d ____GS_____   93/5d _____]_____  157/9d ___________  221/dd _Y'_acute__
+ 30/1e ____RS_____   94/5e _____^_____  158/9e ___________  222/de _cap_thorn_
+ 31/1f ____US_____   95/5f _UNDERLINE_  159/9f ___________  223/df _Es-sed_B__
+ 32/20 ___SPACE___   96/60 _____`_____  160/a0 _req space_  224/e0 _a`_grave__
+ 33/21 _____!_____   97/61 _____a_____  161/a1 _!_invertd_  225/e1 _a'_acute__
+ 34/22 _____"_____   98/62 _____b_____  162/a2 ___cent____  226/e2 _a^_circum_
+ 35/23 _____#_____   99/63 _____c_____  163/a3 ___pound___  227/e3 _a~_tilde__
+ 36/24 _____$_____  100/64 _____d_____  164/a4 __currency_  228/e4 _a"_dieres_
+ 37/25 _____%_____  101/65 _____e_____  165/a5 ____yen____  229/e5 _a__ring___
+ 38/26 _____&_____  102/66 _____f_____  166/a6 _|_broken__  230/e6 _ae________
+ 39/27 _____'_____  103/67 _____g_____  167/a7 __section__  231/e7 _c,cedilla_
+ 40/28 _____(_____  104/68 _____h_____  168/a8 __umulaut__  232/e8 _e`_grave__
+ 41/29 _____)_____  105/69 _____i_____  169/a9 _copyright_  233/e9 _e'_acute__
+ 42/2a _____*_____  106/6a _____j_____  170/aa __fem_ord__  234/ea _e^_circum_
+ 43/2b _____+_____  107/6b _____k_____  171/ab _l_ang_quo_  235/eb _e"_dieres_
+ 44/2c _____,_____  108/6c _____l_____  172/ac ____not____  236/ec _i`_grave__
+ 45/2d _____-_____  109/6d _____m_____  173/ad _syl_hyphn_  237/ed _i'_acute__
+ 46/2e _____._____  110/6e _____n_____  174/ae _registerd_  238/ee _i^_circum_
+ 47/2f _____/_____  111/6f _____o_____  175/af _overline__  239/ef _i"_dieres_
+ 48/30 _____0_____  112/70 _____p_____  176/b0 __degrees__  240/f0 _o^x_Eth_s_
+ 49/31 _____1_____  113/71 _____q_____  177/b1 ____+/-____  241/f1 _n~_tilda__
+ 50/32 _____2_____  114/72 _____r_____  178/b2 _2_supersc_  242/f2 _o`_grave__
+ 51/33 _____3_____  115/73 _____s_____  179/b3 _3_supersc_  243/f3 _o'_acute__
+ 52/34 _____4_____  116/74 _____t_____  180/b4 ___acute___  244/f4 _o^_circum_
+ 53/35 _____5_____  117/75 _____u_____  181/b5 ____mu_____  245/f5 _o~_tilde__
+ 54/36 _____6_____  118/76 _____v_____  182/b6 _paragraph_  246/f6 _o"_dieres_
+ 55/37 _____7_____  119/77 _____w_____  183/b7 __mid_dot__  247/f7 __divide___
+ 56/38 _____8_____  120/78 _____x_____  184/b8 __cedilla__  248/f8 _o/_slash__
+ 57/39 _____9_____  121/79 _____y_____  185/b9 _1_supersc_  249/f9 _u`_grave__
+ 58/3a _____:_____  122/7a _____z_____  186/ba __mas_ord__  250/fa _u'_acute__
+ 59/3b _____;_____  123/7b _____{_____  187/bb _r_ang_quo_  251/fb _u^_circum_
+ 60/3c _____<_____  124/7c _____|_____  188/bc ____1/4____  252/fc _u"_dieres_
+ 61/3d _____=_____  125/7d _____}_____  189/bd ____1/2____  253/fd _y'_acute__
+ 62/3e _____>_____  126/7e _____~_____  190/be ____3/4____  254/fe _sm_thorn__
+ 63/3f _____?_____  127/7f ____DEL____  191/bf _?_invertd_  255/ff _y"_dieres_
+</PRE>
+<P><HR>
+[<A HREF="index.shtml">Back to the ACE Page</A>]
+</BODY>
+</HTML>

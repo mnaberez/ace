@@ -1,0 +1,1001 @@
+<HTML>
+<TITLE>ACE Assembler Documentation</TITLE>
+<BODY BGCOLOR="#d0d0dd" TEXT="#000000" LINK="#d02030" VLINK="#4030b0">
+
+<H1>ACE Assembler Documentation</H1>
+
+<P>by Craig Bruce -- for version 1.20 -- December 17, 1995.
+<HR>
+<PRE>
+1. INTRODUCTION
+
+The ACE assembler is a one-pass assembler.  The only real limitation on the
+size of assembly jobs is the amount of near+far memory you have available.
+Labels are "limited" to 240 characters (all significant), and the object
+size is limited to 64K (of course).  Numerical values are "limited" to
+32-bits or less.  Relative labels ("+" and "-" labels) are implemented in
+the same way as in the Buddy assembler.  Add, subtract, multiply, divide,
+modulus, and, or, and xor dyadic operators are implemented for expressions
+with positive, negate, high-byte, and low-byte monadic oparators, and the
+planned macro and conditional assembly features are not yet implemented.
+Expressions are limited to 17 operands (with 255 monadic operators each) and
+are evaluates strictly left-to-right, but references to unresolved
+identifiers are allowed anywhere, including equate definitions.
+Hierarchical inclusion of source files is supported, and compatibility
+features have been implemented to allow this assembler to accept directives
+and syntax of other assemblers.  All of the ACE applications can be
+assembled using this assembler, including the assembler itself.
+
+The assembler is designed to be a "heavy hitter", operates at moderate
+speed, and uses a fair amount of dynamically allocated memory.  In fact, on
+an unexpanded 64, you won't be able to assemble programs that are too large,
+including the assembler itself (89K of source).  You'll be able to do larger
+jobs on an unexpanded 64 if you deactivate the soft-80 screen in the
+configuration.  (Of course, one could argue that any serious 64 hacker would
+have expanded memory anyways...).
+
+In addition to the regular 6502 instructions, this release of the assembler
+has the following directives:
+
+label = value                ;assign given value to the label
+label:                       ;assign the current assembly address to label
++                            ;generate a temporary label, assign cur address
+-                            ;generate a temporary label, assign cur address
+.org address                 ;set the origin of the assembly
+.buf size                    ;reserve "size" bytes of space,filled with zeroes
+.include "filename"          ;source-file inclusion (nestable)
+.byte val1, val2, ..., valN  ;put byte values into memory
+.word val1, val2, ..., valN  ;put word values into memory
+.triple val1, val2, ..., valN ;put "triple" (3-byte) values into memory, lo->hi
+.long val1, val2, ..., valN  ;put "long" (4-byte) values into memory, lo->hi
+
+These features is described in more detail below.  Note that throughout the
+documentation, I use the terms "identifier", "symbol", and "label"
+interchangeably.
+
+The official name of the assembler is "the ACE assembler", but unofficially,
+it can be called "ACEmbler" to give it a specific one-word name.
+------------------------------------------------------------------------------
+2. USAGE
+
+The usage for the as command is, stated in Unix notation:
+
+usage: as [-help] [-s] [-d] [-q] [file ...]
+
+The "-help" flag will cause the assembler display the usage information and
+then exit, without assembling any code.  Actually, any flag that it doesn't
+understand will be taken as if you had said "-help", but note that if you
+type the "as" command alone on a command line that usage information will
+not be given.
+
+The "-s" flag tells the assembler to generate a symbol-table listing when
+the assembly job is finished.  The table is formatted for an 80-column
+display.  indicates that a symbol table should be generated when the
+assembly job is done.  The table will look like:
+
+The "-d" flag tells the assembler to produce debugging information while it
+is working.  It will generate a lot of output, so you can see exactly what
+is going on.
+
+The "-q" flag tells the assembler to accept quoted text (strings) literally,
+without parsing backslash sequences inside of the strings.  This feature is
+provided for compatibility with source files from other assemblers.
+
+The object-code module name will be "a.out" unless the name of the first
+source file ends with a ".s" extension, in which case the object module will
+be the base name of first source file (without the extension).  The object
+module will be written as a PRG file and will be in Commodore-DOS program
+format: the first two bytes will be the low and high bytes of the code
+address, and the rest will be the binary image of the assembled code.
+
+If no source filename is given on the command line, then input is taken from
+the stdin file stream (and written to "a.out").  If more than one filename
+is given, the each is read, in turn, into the same assembly job (as if the
+files were "cat"ted together into one source file).  (This will change
+subtly when the assembler is completed).
+
+This assembler does not produce a listing of the code assembled and will
+stop the whole assembly job on the first error it encounters.
+------------------------------------------------------------------------------
+3. TOKENS
+
+While reading your source code, the assembler groups characters into tokens
+and interprets them as a complete unit.  The assembler works with five
+different types of tokens: identifiers, numeric literals, string literals,
+special characters, and end-of-file (eof).  Eof is special since it doesn't
+actually include any characters, and its only meaning is to stop reading
+from the current source.  Your input source file should consist only of
+characters that are printable in standard ASCII (don't be confused by this;
+the assembler expects its input to be in PETSCII) plus TAB and
+Carriage-Return.  Other characters may confuse the assembler.
+
+Identifiers consist of a lowercase or uppercase letter or an underscore (_)
+followed by a sequence of such letters or decimal digits or periods (.).
+This is a pretty standard definition of an identifier.  Identifiers are
+limited to 240 characters in length and an error will be reported if you try
+to use one longer than that.  All of the characters of all identifiers are
+significant, and letters are case-sensitive.  Here are some examples of
+all-unique identifiers:
+
+hello  Hello  _time4  a1_x140J  HelloThereThisIsA_LongOne
+
+Numeric literals come in three types: decimal, hexadecimal, and binary.
+Decimal literals consist of an initial digit from 0 to 9 followed by any
+number of digits, provided that the value does not exceed 2^32-1 (approx. 4
+billion).  All types of literals can also have embedded underscore
+characters, which are ignored by the assembler.  Use them grouping digits
+(like the comma for big American numbers).
+
+Hexadecimal literals consist of a dollar sign ($) followed by any number of
+hexadecimal digits, provided the value doesn't overflow 32 bits.  Hexadecimal
+digits include the decimal digits (0-9), and the first six uppercase or
+lowercase letters of the alphabet (either a-f or A-F).  Hexadecimal literals
+can also have embedded underscore characters for separators.
+
+Binary literals consist of a percent sign (%) followed by any number of
+binary digits that don't overflow 32-bits values.  The binary digits are, of
+course, 0 and 1, and literals may include embedded underscore characters.
+Note that negative values are not literals.  Here are some examples of valid
+literals:
+
+0  123  0001  4_294_967_295  $aeFF  $0123_4567  %010100 %110_1010_0111_1010
+
+String literals are sequences of characters enclosed in either single (') or
+double (") quotation marks.  The enclosed characters are not interpreted to
+be independent tokens, nomatter what they are.  One exception is that the
+carriage-return character cannot be enclosed in a string (this normally
+indicates an error anyway).  To get special non-printable characters into
+your strings, an "escape" character is provided: the backslash (\).  If the
+backslash character is encountered, then the character following it is
+interpreted and a special character code is put into the string in place of
+the backslash and the following character.  Here are the characters allowed
+to follow a backslash:
+
+CHAR   CODE   MEANING
+----   ----   --------
+\        92   backslash character (\)
+n        13   carriage return (newline)
+b        20   backspace (this is a non-destructive backspace for ACE)
+t         9   tab
+r        10   goto beginning of line (for ACE, linefeed for CBM)
+a         7   bell sound
+z         0   null character (often used as a string terminator in ACE)
+0         0   null character
+'        39   single quote (')
+e        27   escape
+q        34   quotation mark
+"        34   quotation mark
+
+So, if you really want a backslash then you have to use two of them.  If you
+wish to include an arbitrary character in a literal string, no facility is
+provided for doing that.  However, the assembler will allow you to intermix
+strings and numeric expressions at a higher level, so you can do it that
+way.  Strings are limited to include 240 (encoded) characters or less.  This
+is really no limitation to assembling, since you can put as many string
+literals contiguously into memory as you wish.  Here are some examples:
+
+"Hello there"  "error!\a\a"  'file "output" could not be opened\n\0'
+"you 'dummy'!"  'you \'dummy\'!'  "Here are two backslashes: \\\\"
+
+Special characters are single characters that cannot be interpreted as any
+of the other types of tokens.  These are usually "punctuation" characters,
+but carriage return is also a special-character token (it is a statement
+separator).  Some examples follow:
+
+,  (  #  &  )  =  /  ?  \  ~  {  
+
+Tokens are separated by either the next character of input not being allowed
+to belong to the current token type, or are separated by whitespace.
+Whitespace characters include SPACE (" ") and TAB.  Note that carriage
+return is not counted as whitespace.  Comments are allowed by using a ";"
+character.  Everything following the semicolon up to but not including the
+carriage return at the end of the line will be ignored by the assembler.  (I
+may implement an artifical-intelligence comment parser to make sure the
+assembler does what you want it to, but this will be strictly an optional,
+time-permitting feature).
+------------------------------------------------------------------------------
+4. EXPRESSIONS
+
+Numeric expressions consist of operands and operators.  If you don't know
+what operands and operators are, then go buy an elementary-school math
+book.  There are six types of operands: numeric literals, single-character
+string literals, identifiers, the asterisk character, one or more plus
+signs, and one or more minus signs.  These last three types can make parsing
+an expression a bit confusing, but they are necessary and useful.
+
+Numeric literals are pretty easy to think about.  They're just 32-bit
+numbers and work in the usual way.  Single-character string literals are
+also interpreted (in the context of a numeric expression) as being a numeric
+literal.  The value of a single-character string is simply the PETSCII code
+for the character.
+
+Identifiers or "symbols" or "labels" used in expressions refer to numeric
+values that have been or will be assigned to the identifiers.  Binding
+values to identifiers is done by assembler directives discussed in a later
+section.  If an identifier already has a value assigned to it by the time
+that the current expression is reached in assembly, then it is treated as if
+it were a numeric literal of the value assigned to the identifier.  If the
+identifier currently has no value assigned to it (i.e., it is "unresolved"),
+then the entire current expression will be unresolved.  In this case, the
+value of the expression will be recorded and will be evaluated at a later
+time when all of its identifiers become resolved.  A "hole" will be created
+where the expression should go, and the hole will be "filled in" later.
+Note that there are a couple of directives for which an expression must be
+resolved at the time it is referenced.
+
+The asterisk character operates much like a numeric literal, except that its
+value is the current code address rather than a constant.  The current code
+address will always be for the start of an assembler instruction.  I.e., the
+current code address is incremented only after an instruction is assembled.
+This has some subtle implications, and other assemblers may implement
+slightly different semantics.  Directives are a little different in that the
+address is incremented after every value in a "commalist" is put into
+memory.
+
+Relative references, i.e., operands consisting of a number of pluses or
+minuses, operate much like identifiers.  They are provided for convenience
+and work exactly how they do in the Buddy assembler.  Operands of all
+minuses are backward references and operands of all pluses are forward
+references.  Because of parsing difficulties, relative-reference operands
+must either be the last operand in an expression or must be followed by a
+":" character.
+
+The number of pluses or minuses tell which relative reference "point" is
+being referred to.  A reference point is set by the "+" and "-" assembler
+directives discussed later.  This gets difficult to explain with words, so
+here is a code example:
+
+   ldy #5
+-  ldx #0
+-  lda name1,x
+   sta name2,x
+   beq +
+   cmp #"x"
+   beq ++
+   inx
+   bne -
++  dey
+   bne --
++  rts
+
+This relatively bogus subroutine will copy a null-terminated character
+string from name1 to name2 five times, unless the string contains an "x"
+character, in which case the copy operation terminates immediately upon
+encountering the "x".  The "beq +" branches to the next "+" label to occur
+in the code, to the "dey" instruction.  The "beq ++" branches to the "rts",
+to the "+" label following the next "+" label encountered.  The "-" and "--"
+references work similarly, except that they refer to the previous "-" label
+and the previous to the previous "-" label.  You can use up to 255 pluses or
+minus signs in a relative-reference operand to refer to that many reference
+points away.
+
+That I said relative-reference operands work much like identifiers above is
+no cooincidence.  For each definition of a reference point and reference to
+a point, an internal identifier is generated that looks like "L+123c" or
+"L-123c".  Note that you can't define or refer to these identifiers
+yourself.
+
+There are two types of operators that can be used in expressions: monadic
+and diadic operators.  Monadic operators affect one operand, and dyadic
+operators affect two operands.  At about this point, I should spell out the
+actual form of an expression.  It is:
+
+[monadic_operators] operand [ operator [monadic_operators] operand [...] ]
+
+or:
+
+1 + 2
+-1 + -+-2 + 3
+
+An expression may have up to 17 operands.
+
+The monadic (one-operand) operators are: positive (+), negative (-),
+low-byte (<), and high-bytes (>).  You can have up to 255 of each of these
+monadic operators for each operand of an expression.  Positive doesn't
+actually do anything.  Negative will return the 32-bit 2's complement of the
+operand that it is attached to.  Low-byte will return the lowest eight bits
+of the operand it is attached to.  High-byte will return the high-order
+24-bits of the 32-bit operand it is attached to.  All expressions are
+evaluated in full 32-bit precision.  Note that you can use the high-bytes
+operator more than once to extract even higher byte.  For example,
+"<>>value" will extract the second-highest byte of the 32-bit value.
+
+The dyadic (two-operand) operators that are implemented are: add (+),
+subtract (-), multiply (*), divide (/), modulus (!), bitwise-and (&),
+bitwise-or (|), and bitwise-exclusive-or (^).  Yes, the plus and minus
+symbols are horribly overloaded, and the usual Not (modadic) operator isn't
+implemented, since it can be simulated with Xor, and "not, with respect to
+what?" becomes a problem since evaluations are performed with a full
+32-bits.  We should already know what all of the implemented operators do,
+except maybe for Modulus.  It is like Divide, except that Modulus returns
+the Remainder rather than the Quotient of the division result.
+
+Evaluation of dyadic operators is strictly left-to-right, and value
+overflows and underflows are ignored.  Values are always considered to be
+positive, but this doesn't impact 2's complement negative arithmetic for add
+and subtract dyadic operators.
+
+Monadic operators take precedence over dyadic operators.  Evaluation of
+monadic operators is done a little differently.  All positive operators are
+thrown out since they don't actually do anything.  Then, if there is an even
+number of negative operators, they are thrown out.  If there is an odd
+number of negative operators, then the 2's complement negative of the
+operand is returned.  Then, if there are any high-bytes operators, the value
+is shifted that number of bytes to the right and the highest-order byte of
+the value is set to zero on each shift.  Note that it really doesn't make
+any sense to perform any more than three high-bytes operators.  Then, the
+low-byte operator is preformed, if asked for.  It is equivalent to taking
+anding the value with $000000ff.  It really doesn't make much sense to
+perform this operator more than once.  Also, it doesn't make any difference
+in which order you place the monadic operators in an expression; they are
+always evaluated in the static order given above.
+
+There is one exception here.  If the first operand of an expression has
+high-bytes and/or low-byte monadic operators, then the rest of the
+expression is evaluated first and then the high/low-byte monadic operators
+are performed on the result.  This is done to be consistent with other
+assemblers and with user expectations.
+
+Parentheses are not supported.  Here are some examples of valid expressions:
+
+2
++2+1
+2+-1
+2+-------------------------------------1
+++++:-+++:+---
+1+"x"-"a"+"A"
+<>>>4_000_000_000
+<label+1
+>label+1
+-1
+
+This last one ends up with a value of negative one, which is interpreted as
+really being 4_294_967_295.  If you were to try and do something like
+"lda #-1", you would get an error because the value would be interpreted as
+being way too big.
+
+Expressions results and identifiers have a data type associated with them.
+There are four data types: Value, Address, Low-byte, High-byte. and
+Garbage.  The type of an expression is recorded since it will be required to
+provide object-module relocation features in the future.  Values are what
+you would expect and come from numeric and single-character-string-literal
+operands.  The Address type comes from the asterisk and relative reference
+operands and from identifier operands which are defined to be addresses.  An
+address is defined to be only an address in the range of the assembled
+code.  Addresses outside of this range are considered to be values.  The
+High-byte type results from applying the high-bytes (>) operator to an
+address operand, and the Low-byte type, from applying the low-byte (<)
+operator.  The Garbage type results from using an operator on two operands
+of types that don't make any sense (for example, from multiplying one
+Address by another).  The result-type rules for the operators is a bit
+complicated, but is intuitive.  You don't have to worry about them since the
+assembler takes care of them automatically.  Keeping track of expression
+types makes it possible to generate a list of all values in memory that must
+be modified in order to relocate a program to a new address without
+reassembling it.
+
+String "expressions" consist of only a single string literal.  No operators
+are allowed.  Some assembler directives accept either numeric or string
+expressions and interpret them appropriately (like "byte").
+------------------------------------------------------------------------------
+5. PROCESSOR INSTRUCTIONS
+
+This assembler accepts the 56 standard 6502 processor instructions.  It does
+not provide un-documented 6502 instructions nor 65c02 nor 65816 instructions
+nor custom pseudo-ops.  The latter will be provided by future macro
+features.  All of the assembler instructions must be in lowercase or they
+will not be recognized.  Here are the instructions:
+
+NUM  INS      NUM  INS      NUM  INS      NUM  INS      NUM  INS
+---  ---      12.  bvc      24.  eor      36.  pha      48.  sta
+01.  adc      13.  bvs      25.  inc      37.  php      49.  stx
+02.  and      14.  clc      26.  inx      38.  pla      50.  sty
+03.  asl      15.  cld      27.  iny      39.  plp      51.  tax
+04.  bcc      16.  cli      28.  jmp      40.  rol      52.  tay
+05.  bcs      17.  clv      29.  jsr      41.  ror      53.  tsx
+06.  beq      18.  cmp      30.  lda      42.  rti      54.  txa
+07.  bit      19.  cpx      31.  ldx      43.  rts      55.  txs
+08.  bmi      20.  cpy      32.  ldy      44.  sbc      56.  tya
+09.  bne      21.  dec      33.  lsr      45.  sec
+10.  bpl      22.  dex      34.  nop      46.  sed
+11.  brk      23.  dey      35.  ora      47.  sei
+
+The assembler also supports 12 addressing modes.  The "accumulator"
+addressing mode that can be used with the rotate and shift instructions is
+treated like the immediate addressing mode, so a shift-left-accumulator
+instruction would be just "asl" rather than "asl a".  Many other assemblers
+get rid of the accumulator addressing mode also.  Processor instructions
+(and addressing modes with "x" and "y" in them) may be given in either
+uppercase or lowercase, to allow for maximum compatibility with source code
+from other assemblers.
+
+Here is the token syntax for the addressing modes (CR means carriage
+return):
+
+num  name       gen  byt  example   tokens
+---  ---------  ---  ---  -------   -------
+01.  implied    00.    1            CR
+02.  immediate  00.    2  #123      #     / exp8  / CR
+03.  relative   00.    2  *+20      exp16 / CR
+04.  zeropage   07.    2  123       exp8  / CR
+05.  zp,x       08.    2  123,x     exp8  / ,     / x   / CR
+06.  zp,y       09.    2  123,y     exp8  / ,     / y   / CR
+07.  absolute   00.    3  12345     exp16 / CR
+08.  abs,x      00.    3  12345,x   exp16 / ,     / x   / CR
+09.  abs,y      00.    3  12345,y   exp16 / ,     / y   / CR
+10.  indirect   00.    3  (12345)   (     / exp16 / )   / CR
+11.  (ind,x)    00.    2  (123,x)   (     / exp8  / ,   / x   / )  / CR
+12.  (ind),y    00.    2  (123),y   (     / exp8  / )   / ,   / y  / CR
+
+Each instruction takes a complete line and each addressing mode must be
+terminated by a carriage return token (comments are skipped).  The format of
+an instruction line is as follows:
+
+[prefix_directives] instruction address_mode_operand
+
+In the case that an expression in an addressing mode is resolved at the
+point it is encountered and its value is less than 256, the assembler will
+try to use the zero-page addressing modes if possible.  On the other hand,
+if a zero-page addressing mode is unavailable for an instruction, then the
+assembler will promote or generalize the zero-page addressing mode to an
+absolute addressing mode, if possible.  This is what the "gen" column in the
+table above shows.  If after attempting to generalize the addressing mode
+the given addressing mode still not valid with the given instruction, then
+an error will be generated.
+
+In the case that an expression in an addressing mode cannot be resolved at
+the point where it is encountered in the assembler's single pass, a hole is
+left behind, and that hole is made as "large" as possible; it is assumed
+that you will fill in the hole with the largest value possible.  This means,
+for example, if you were to assemble the following instruction:
+
+lda var,x
+
+then the assembler would assume this is an absolute mode, and will fill in
+the hole later as such, even if it turns out that "var" is assigned a value
+less than 256 later on.  This results in slight inefficiency in the code
+produced by this assembler, but it causes most two-pass assemblers to fail
+completely on a "phase error".  An easy way to avoid this circumstance is to
+make sure that all zero-page labels are defined before they are referred
+to.
+
+The addressing modes that require a single byte value and that will not
+"generalize" to an absolute mode will have a single-byte hole created for
+them.  Only the branching instructions will be interpreted as having the
+relative addressing mode, and a single-byte hole will be left.  Two
+exceptions to the above rules are the "stx zp,y" and "sty zp,x", which will
+leave a single-byte hole on an unresolved expression, since the
+absolute-mode generalizations for these instructions are not supported by
+the processor.
+------------------------------------------------------------------------------
+6. DIRECTIVES
+
+There are currently six classes of assembler directives; there will be
+more in the future.  For maximum compatibility, all directives can be
+in either uppercase or lowercase.  Also, to be more standard, most
+directives are required to start with the dot (.) character.
+
+6.1. DO-NOTHING DIRECTIVES
+
+There are three do-nothing directives:
+
+#                           ;does nothing
+                            ;blank line--does nothing
+
+A blank line in your source code will simply be ignored.  This helps to make
+code much more readable.  The "#" directive is a prefix directive.  This
+means that it does not occupy an entire line but allows other directives and
+processor instructions to follow it on the same line (including other prefix
+directives).  (But note that you can follow any prefix directive by the
+blank-line directive, effectively allowing prefix directives to be regular
+full-line directives (powerful combining forms)).  The "#" directive is
+simply ignored by the assembler, but you can use it to highlight certain
+lines of code or other directives.
+
+6.2. ASSIGNMENT DIRECTIVES
+
+There are four assignment directives.  They all assign (bind) a value to an
+identifier.  Here they are:
+
+label = expression          ;assign given value to the label
+label:                      ;assign the current assembly address to label
++                           ;generate a temporary label, assign cur address
+-                           ;generate a temporary label, assign cur address
+
+The first (label=expr) is the most general.  It assigns the result of
+evaluating the expression to the given label.  Because this assembler is so
+gosh-darned awesome, the expression doesn't even have to be resolved; a
+"hole" will be created saying to fill in the assigned label when all of the
+unresolved identifiers in the expression eventually become resolved.  Most
+other assemblers (in fact, all that I have ever heard of) can't do this
+because it causes ugly implementation problems, like cascading label
+resolutions.  Consider the following example:
+
+lda #a
+sta b,x
+a = b+3
+b = c-1
+c = 5
+
+At the point where c becomes defined, there are no "memory holes" but the
+label hole "b" must be evaluated and filled in.  "b" gets assigned the value
+4.  At this point, there are two holes: the one in the "sta" instruction and
+the label "a".  We fill them both in, assigning "a" the value 8, and we
+discover that we need to fill in a hew hole: the one in the "lda"
+instruction.  We do that and we are finally done.  The implementation can
+handle any number of these recursive label hole-fillings, limited only by
+the amount of near+far memory you have.
+
+A label can only be assigned a value only once, and you will get an error if
+you try to redefine a label, even if it is currently unresolved.  Also, all
+exressions must be resolved by the end of the assembly job, or an error will
+be reported (but only one--naming the first unresolved label that the
+assembler runs across; I may fix this up in the future).
+
+The second assignment directive is equivalent to "label = *", but it is more
+convenient and is also a prefix directive.  It assigns the current address
+(as of the start of the current line) to the given identifier.  The colon is
+used with this directive to make it easy and efficient to parse, and to make
+it easy for a human to see that a label is being defined.  Many other
+assemblers follow this directive with just whitespace and rely on other
+tricks, like putting an ugly dot before each directive, to bail them out.
+For maximum compatibility, you can also leave out the colon following a
+label definition and the assembler will figure out what you mean (though a
+little less efficiently).
+
+The third and fourth set relative reference points.  They are equivalent to
+"rel_label = *", where "rel_label" is a specially generated internal
+identifier of the form "L+123c" mentioned in the expression section.  The
+labels defined by these directives show up in the symbol table dump, if you
+ask for one on the command line.  These are also prefix directives, so if
+you wanted to set a forward and a backward reference to the same address,
+then you would do something like:
+
++- lda #1
+
+In fact, you could put as many or these directives on the front of a line as
+you want, though more than one of each will be of little use.  For source
+compatibility with the Buddy assembler, the ACE assembler will also accept a
+leading "/" on a line as being equivalent to "+-".  Note that backward
+relative labels will always be defined at the point that they are referenced
+and forward relative labels will always be undefined (unresolved) when they
+are referenced.  If at the end of your assembly job the assembler complains
+of an unresolved reference involving a label of the form "L+123c", then you
+refer to a forward-relative point that you don't set, and if the label is of
+the form "L-4000000000c", then you refer to a backward relative point that
+you don't define.
+
+6.3. ORIGIN DIRECTIVE
+
+.org address_expression      ;set the origin of the assembly
+
+This directive will set the code origin to the given expression.  The
+expression MUST be resolved at the point where it appears, since it would be
+very difficult to fill in the type of "hole" this would leave behind (though
+not impossible, hmmm...).  The origin must be set before any processor
+instruction or assembler directive that generates memory values or refers to
+the current address is encountered, and the code origin can only be set
+once.  This results in a contiguous code region, which is what ACE and the
+Commodore Kernal require.
+
+6.4. DEFINE-BYTES DIRECTIVES
+
+.byte exp1, exp2, ..., expN   ;put byte values into memory
+.word exp1, exp2, ..., expN   ;put word values into memory
+.triple exp1, exp2, ..., expN ;put "triple" (3-byte) values into memory, lo->hi
+.long exp1, exp2, ..., expN   ;put "long" (4-byte) values into memory, lo->hi
+
+These directives all put byte values into code memory, at the current
+address.  The only difference between the four of them is the size of data
+values they put into memory: bytes (8 bits), words (16 bits), triples (24
+bits), and longs (32 bits).  The code address is incremented by the
+appropriate number of bytes between putting each value into memory.  Any
+number of values can be specified by separating them by commas.  All
+expressions are evaluated in full 32 bits, but must fit into the size for
+the directive.  The expressions don't have to be resolved at the time they
+appear.
+
+These directives can also be given strings for arguments, which means that
+each character of the string will be stored as one byte/word/etc. in memory,
+for example:
+
+.byte 123, abc+xyz+%1101-"a"+$1, "hello", 0, "yo!", "keep on hackin'\0"
+
+These directives used to be named "db", "dw", "dt", and "dw", but I changed
+them to be more consistent with most other 6502 assemblers out there.
+
+6.5. BUF DIRECTIVE
+
+.buf size_expression       ;reserve "size" bytes of space, filled with zeroes
+
+This directive reserves the given number of bytes of space from the current
+code address and fills them with zeroes.  The expression must be resolved,
+and can be any value from 0 up to 65535 (or the number of bytes remaining
+until the code address overflows the 64K code space limit).
+
+6.6. INCLUDE DIRECTIVE
+
+.include "filename"       ;include the named source file at the current point
+
+This directive will include the named source file at the current point in
+the current source file, as if you had typed the contents of the named
+file were actually typed at the current point.  Input is read from the
+include file until it hits EOF, and then input is resumed from the current
+file immediately after the include statement.  The filename must be in
+the form of a string literal and in the ACE syntax.
+
+Normally, this feature is used to include standard header files into an
+application, such as the "acehead.s" file, but it can also be use to
+modularize an application into a number of different functional modules.
+
+Include files may be nested arbitrarily deep (included files may include
+other files, and so on) in the assembler, but the ACE environment puts
+limitations on how many files can be opened at one time (although, you
+should never need to go more than a couple of levels deep).  The assembler
+doesn't check for recursive include files (although it could), but you will
+get an error anyway from ACE since you will exceed the number of allowed
+files to have opened.
+
+Error reporting is also reported correctly in the case that an error is
+detected in the current source file because of a reference in a different
+file (both files will be named).
+
+6.7. PARSING AND COMPATIBILITY
+
+Because of the way that the assembler parses the source code (it uses a
+one-character-peek-ahead ad-hoc parser), you can define labels that are also
+directive names or processor-instruction names (if you use the colon
+notation).  This is not a recommended practice, since you can end up with
+lines that look like:
+
+x: lda: lda lda,x
+
+The parser will know what to do, but most humans won't.  Also, because of
+the tokenizer, can put arbitrary spacing between tokens, except between
+tokens that would otherwise merge together (like two adjacent identifiers or
+decimal numbers).
+
+For compatibility, the following directives are also include and are used
+as aliases for ACE-assembler directives.
+
+ALIAS   ACE-as     DESCRIPTION
+-----   ------     -----------
+.asc    .byte      works since the byte directive accepts strings
+.byt    .byte      equivalent
+.seq    .include   equivalent; the filename must be a literal string
+.obj    ;          all tokens following this are ignored UNTIL the CR
+.end    <eof>      end the assembly of the current file
+------------------------------------------------------------------------------
+7. ERROR HANDLING
+
+When an error is detected, the assembler will stop the whole assembly job
+and print out one error message (to the stderr file stream).  Here are two
+examples of error messages:
+
+err ("k:":2:0) Value is too large or negative
+
+err ("k:":3:0), ref("k:":2:0) Value is too large or negative
+
+In both error messages, the stuff inside of the parentheses is the filename
+of the source file (the keyboard here), the source line where the error was
+detected, and the column number where the error was detected.  Currently,
+the column number is not implemented so it is always zero.  When it is
+implemented, the column numbers will start from 1, like in the Zed text
+editor, and it will point to the first character of the token where the
+error was discovered.
+
+In the first example, the error occurred because the expression was resolved
+and the value was found to be too large for whatever operation was
+attempted.  In the second example, an expression was used but unresolved on
+line 2 of the source file, and when its unresolved identifier(s) was finally
+filled in in line 3 of the source, the "hole" to be filled in was found to
+be too small for the value, so an error resulted.  This is what the "ref"
+file position means.  Filenames are included in error messages because in
+the future, it will be possible to have errors crop up in included files and
+elsewhere.
+
+Here is the entire list of possible error messages:
+
+NUM  MEANING
+---  -------
+01.  "An identifier token exceeds 240 chars in length"
+02.  "A string literal exceeds 240 chars in length"
+03.  "Ran into a CR before end of string literal"
+04.  "Invalid numeric literal"
+05.  "Numeric literal value overflows 32-bits"
+06.  "Syntax error"
+07.  "Attempt to perform numeric operators on a string"
+08.  "Expression has more than 17 operands"
+09.  "Ran out of memory during compilation process"
+10.  "Attempt to redefine a symbol"
+11.  "Attempt to assemble code with code origin not set"
+12.  "Internal error: You should never see this error!"
+13.  "Non-numeric symbol in a numeric expression"
+14.  "Expecting an operator"
+15.  "Expecting an operand"
+16.  "Expecting a command"
+17.  "Value is too large or negative"
+18.  "Branch out of range"
+19.  "Feature is not (yet) implemented"
+20.  "Instruction does not support given address mode"
+21.  "Address wraped around 64K code address space"
+22.  "Error trying to write output object file"
+23.  "Directive requires resolved expression"
+24.  "Code origin already set; you can't set it twice"
+25.  "Unresolved symbol: "
+26.  "Expecting a string-literal filename"
+
+A "Syntax error" (#06) will be reported whenever a token other than one that
+was expected is found (except in the cases of the other 'Expecting'
+messages).  "Ran out of memory" (#09) may turn up often on an unexpanded
+64.  "Expecting command" (#16) means that the assembler was expecting either
+a processor instruction or directive but found something else instead.  "Not
+implemented" (#19) means that you've tried to use a directive that isn't
+implemented yet.  "Unresolved symbol" (#25) will be printed with a randomly
+chosen unresolved symbol, with the last place in the source code where it
+was referenced.
+
+There are two main reasons behind the idea of stopping at the first error
+encountered: simplicity and interoperability.  When ZED is implemented for
+ACE, it will have a feature that will allow it to invoke the assembler (as a
+sub-process) and have the assembler return an error location and message to
+ZED, which will display the error message and position the cursor to the
+error location (if the source file is loaded).
+
+While on the subject of messages coming out of the assembler, here is an
+example of the format of the symbol table dump that you can ask for on the
+command line.  One line is printed for each identifier.  The "hash" value is
+the bucket in the hash table chosen for the identifier.  This may not have a
+whole lot of meaning for a user, but a good distribution of these hash
+buckets in the symbol table is a good thing.  Next is the 32-bit "hexvalue"
+of the label followed by the value in "decimal".  Then comes the type.  A
+type of "v" means value, "a" in-code-range address, "l" means an address
+low-byte, "h" means an address high-byte, and "g" means a 'garbage' type.
+Then comes the name of the identifier.  It comes last to give lots of space
+to print it.  If an identifier is ten or fewer characters long, its
+symbol-table-dump line will fit on a 40-column screen.  At the bottom, the
+number of symbols is printed.  This table is directed to the stdout file
+stream, so you can redirect it to a file in order to save it.
+
+HASH  HEXVALUE    DECIMAL  T  NAME
+----  -------- ----------  -  -----
+   8  00000f06       3846  v  aceArgv
+ 469  00007008      28680  a  main
+--
+Number of symbols: 2
+------------------------------------------------------------------------------
+8. IMPLEMENTATION
+
+In each of the ways in which it is heavy-weight and slowed-down compared to
+other assemblers, it is also more powerful and more flexible.
+
+- It uses far memory for storing symbols, so there is no static or
+  arbitrarily small limit on the number of symbols.  Macro sizes will also
+  be limited by only the amount of memory available, as well as the "hole
+  table".
+
+- It has to maintain a "hole table" because of its structure, but this means
+  that you can define labels in terms of other unresolved labels, that you
+  will never get a "sync error" because of incorrect assumptions made (and
+  not recorded) about unresolved labels, and that modular assembly can be
+  implemented without too much further effort (i.e., ".o" or ".obj" files),
+  since an unresolved external reference handling mechanism is already
+  implemented.
+
+- The assembler keeps track of the "types" of labels which makes it possible
+  to provide code relocation information that will be needed by modular
+  assembly and by future multitasking operating systems.
+
+- Because a "hole table" approach is used, the raw object code must be
+  stored internally until the assembly is complete and then it can be
+  written out to a file, but this also means that header information can be
+  provided in an output file since all assembly results will be known before
+  any output is written.
+
+- I took the easy way out for handling errors; when an error is detected, an
+  error message is generated and printed and the assembler STOPs.  But the
+  exit mechanism provided by ACE makes it possible to integrate the
+  assembler with other programs, like a text editor, to move the text editor
+  cursor to the line and column containing the error and display a message
+  in the text editor.
+
+There are two speed advantages that this assembler has over (some?) others:
+
+- It uses a 1024-entry hash table of pointers to chains of labels, so, for a
+  program that has 800 or so symbols, each can be accessed in something like
+  1.3 tries.  For N total symbols, the required number of references is
+  approximately MAX( N/1024, 1 ).
+
+- It is one-pass, so it only has to go through the overhead of reading the
+  source file once.  Depending on the type of device the file is stored on,
+  this may give a considerable savings.  This also makes it possible to
+  "pipe" the output of another program into the assembler, without any
+  "rewind" problems.
+
+Here are some (old) performace figures, compared to the Buddy assembler for
+the 128.  All test cases were run on a C128 in 2-MHz mode with a RAMLink,
+REU, and 1571 available.
+
+ASSEMB   TIME(sec)   FILE DEVICE   FAR STORAGE
+------   ---------   -----------   -----------
+Buddy         45.5   RAMLink       n/a
+ACE-as        61.5   RAMLink       REU
+ACE-as        49.5   ACE ramdisk   REU
+ACE-as        75.6   RAMLink       RAM0+RAM1
+ACE-as       150.5   1571          RAM0+RAM1
+Buddy        240.0   1571          n/a
+
+Part of the assembly job was loaded into memory for the Buddy assembler, but
+the load time is included in the figure.  As you can see, buddy performs
+faster with a fast file device and slower with a slow file device (because
+it requires two passes).  I have a couple of tricks up my sleeve to improve
+the ACE assembler's performance.
+
+Here are a few data structures for your enjoyment.
+
+Identifier descriptor:
+
+OFF   SIZ   DESCRIPTION
+---   ---   ------------
+  0     4   next link in hash table bucket
+  4     4   value of symbol, pointer to reference list, or ptr to macro defn
+  8     1   offset of reference in expression of reference list
+  9     1   type: $00=value, $01=address, $02=low-byte, $03=high-byte,
+                  $04=garbage, $80=unresolved, $ff=unresolved define
+ 10     1   class: $00=normal, $01=private, $80=global (not used yet)
+ 11     1   name length
+ 12     n   null-terminated name string (1-240 chars)
+12+n    -   SIZE
+
+Expression/Hole descriptor:
+
+OFF   SIZ   DESCRIPTION
+---   ---   -----------
+  0     1   hole type: $01=byte, $02=word, $03=triple, $04=long, $40=branch,
+            $80=label
+  1     1   expression length: maximum offset+1 in bytes
+  2     1   number of unresolved references in expression
+  3     1   source column of reference
+  4     4   address of hole
+  8     4   source line of reference
+ 12     4   source file pointer
+ 16    14   expression operand descriptor slot #1
+ 30    14   expression operand descriptor slot #2
+ 44    14   expression operand descriptor slot #3
+ 58    14   expression operand descriptor slot #4
+ 72    14   expression operand descriptor slot #5
+ 86    14   expression operand descriptor slot #6
+100    14   expression operand descriptor slot #7
+114    14   expression operand descriptor slot #8
+128    14   expression operand descriptor slot #9
+142    14   expression operand descriptor slot #10
+156    14   expression operand descriptor slot #11
+170    14   expression operand descriptor slot #12
+184    14   expression operand descriptor slot #13
+198    14   expression operand descriptor slot #14
+212    14   expression operand descriptor slot #15
+226    14   expression operand descriptor slot #16
+240    14   expression operand descriptor slot #17
+254     -   SIZE
+
+Expression operand descriptor:
+
+OFF   SIZ   DESCRIPTION
+---   ---   -----------
+  0     1   dyadic operator: "+", "-", "*", "/", "!", "&", "|", or "^"
+  1     1   type of value: $00=value, $01=address, $02=low-byte, $03=high-byte,
+            $04=garbage type, $80=unresolved identifier
+  2     1   monadic-operator result sign of value: $00=positive, $80=negative
+  3     1   hi/lo operator counts: high_nybble=">" count, low_nybble="<" count
+  4     4   numeric value or unresolved-identifier pointer
+  8     4   next unresolved reference in chain for unresolved identifier
+ 12     1   offset in hole structure of next unresolved reference (operand)
+ 13     1   reserved
+ 14     -   SIZE
+
+File Identifier:
+
+OFF   SIZ   DESCRIPTION
+---   ---   -----------
+  0     4   pointer to previous file identifier on include stack
+  4     4   line number save
+  8     4   column number save
+ 12     1   file type: $00=regular, $01=stdin, $80=macro
+ 13     1   file descriptor save
+ 14     1   previous character save
+ 15     1   buffer pointer save
+ 16     4   pointer to buffer save area (char[256])
+ 20     4   reserved
+ 24     1   length of entire file-identifier record
+ 25     n   filename + '\0'
+25+n    -   SIZE
+------------------------------------------------------------------------------
+9. THE FUTURE
+
+This section is just random notes since I don't have the time right now to
+fill it in.  I will be implementing include files, conditional assembly, and
+macro assembly features in the future.  Modular assembly and relocatable-
+code generation are also in my plans.
+
+;todo: -implement storage classes: $00=internal, $01=rel.label, $80=exported
+;      -implement source column, make line:col point to start of cur token
+;      -make it so you can use a "\<CR>" to continue a line (macro)
+;
+; usage: as [-help] [-s] [-d] [-b] [-r] [-l] [-a addr] [file ...] [-o filename]
+;
+;     -help : produce this information, don't run
+;        -s : produce symbol table dump at end
+;        -d : provide debugging information (lots)
+;        -b : produce binary module at end (default)
+;        -r : produce relocatable module rather than binary module
+;        -l : produce linkable ".o" module(s)
+;        -a : set global code origin to given address
+;        -o : put output into given filename
+;
+;     If -l option is not used, all files, including source and object modules,
+; will be assembled together.  The output module name will be the base name of
+; the first file given if it has a ".s" or ".o" extension, "a.out" if the first
+; file has none of these extensions, or will be the filename given by the -o
+; option if used.
+;     If the -l option is used, then each given source module will be
+; assembled independently into its own ".o" module.  Object modules will be
+; ignored.
+;     The global origin will be either that given by the -a option (if it is
+; used) or by the local origin of the first source/object module.  Each
+; source module that generates code must have a local code origin.
+
+More Directives:
+
+if <expression> <relop> <expression>
+elsif <expression> <relop> <expression>
+else
+endif
+macro macroname
+endmacro
+export label1, label2, ..., labelN
+bss size_expression
+
+macro blt ;?1=addr
+   bcc ?1
+endmacro
+
+macro add ;?1=operand
+   clc
+   adc ?1
+endmacro
+
+macro ldw ;?1=dest, ?2=source
+ if ?# != 2
+   error "the ldw macro instance doesn't have two arguments"
+ endif
+ if @1 = #
+   argshift 2 0
+   lda #<?2
+   sta ?1+0
+   lda #>?2
+   sta ?1+1
+ else
+   lda ?2+0
+   sta ?1+0
+   lda ?2+1
+   sta ?1+1
+ endif
+endmacro
+------------------------------------------------------------------------------
+So, there is finally a powerful and convenient assembler universally
+available for both the 64 and 128... for free.  The source code for the
+assembler (which can be assembled by the assembler, of course) is also
+available for free.  There are a few more features that need to be
+implemented, but I know exactly how to implement them.
+
+Keep on Hackin'!
+
+-Craig Bruce
+csbruce@ccnga.uwaterloo.ca
+"Give them applications and they will only want more; give them development
+ tools and they will give you applications, and more."
+</PRE>
+<P><HR>
+[<A HREF="index.html">Back to the ACE Page</A>]
+</BODY>
+</HTML>

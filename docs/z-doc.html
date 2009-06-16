@@ -1,0 +1,128 @@
+<HTML>
+<TITLE>ACE ZED Documentation</TITLE>
+<BODY BGCOLOR="#d0d0dd" TEXT="#000000" LINK="#d02030" VLINK="#4030b0">
+
+<H1>ACE ZED Documentation</H1>
+
+<P>by Craig Bruce -- for version 0.50 -- December 17, 1995.
+<HR>
+<PRE>
+ZED Command Key Summary:
+
+Control Command Keys (Commodore does the same):
+
+I CODE  KEY      ACTION
+- ----  -------  -------
+  $e0   CT-@     Exchange cursor position with mark position
+  $e1   CT-A     Alter case of letter under cursor
+  $e2   CT-B     Go on to next buffer
+  $e2+  CT-SH-B  Go on to previous buffer
+  $e3   CT-C     Copy range
+  $e4   CT-D     Delete range
+  $e5   CT-E     Exit with save
+  $e6   CT-F     Find next occurrence of hunt string
+  $e6+  CT-SH-F  Find previous occurrence of hunt string
+  $e7   CT-G     Go to given line number
+  $e7+  CT-SH-G  Go to given _physical_ line number
+  $e8   CT-H     Set Hunt string
+  $e9   CT-I     Insert new file into current one
+  $ea   CT-J     Juggle the lines of a paragraph, keep separate
+  $eb   CT-K     Kill current line
+  $ec   CT-L     Load file
+  $ed   CT-M     Set Mark for range operations
+* $ee   CT-N     Set Name of current file (to "noname", for now)
+  $ef   CT-O     Set Options: input/output translation/tab-expansion, etc.
+  $f0   CT-P     Print range of current file
+* $f1   CT-Q     Quit without save
+  $f2   CT-R     Recall text from the Kill buffer
+* $f2+  CT-SH-R  Recall text from the Rub buffer
+* $f3   CT-S     Save file
+  $f4   CT-T     Tie together multiple lines into one big line (paragraph)
+  $f5   CT-U     Undo the last change made to the document
+  $f6   CT-V     Verify file
+  $f7   CT-W     Write range with new name
+  $f8   CT-X     Extract the individual lines from a paragraph
+  $f9   CT-Y     Replace (all the other letters were taken!)
+  $fa   CT-Z     <unassigned>
+* $fb   CT-[     Toggle insert mode
+* $fc   CT-\     Toggle modified flag
+* $fd   CT-]     Toggle indent mode
+  $fe   CT-^     Change the current working directory
+  $ff   CT-_     Compose ISO-8859-1 character
+
+Other Command Keys:
+
+I CODE  KEY          ACTION
+- ----  ---          ------
+* $91   UP           Cursor up
+* $11   DOWN         Cursor down
+* $9d   LEFT         Cursor left
+* $1d   RIGHT        Cursor right
+* $06   SH-LEFT      Word left
+* $0b   SH-RIGHT     Word right
+* $16   CT-UP        Page up
+* $17   CT-DOWN      Page down
+  $19   CT-LEFT      Page left
+  $1a   CT-RIGHT     Page right
+* $0c   CO-UP        Goto top of document
+* $0f   CO-DOWN      Goto bottom of document
+* $10   CO-LEFT      Goto beginning of line
+* $15   CO-RIGHT     Goto end of line
+
+* $0d   RETURN       Split current line (indent not yet implemented)
+  $8d   SH-RETURN    Go to next paragraph
+  $01   CT-RETURN    Go up one paragraph
+  $09   TAB          Tab
+  $02   SH-TAB       Backtab
+  $18   CT-TAB       Insert to next tab stop
+* $14   DEL          Delete character
+* $08   CO-DEL       Rubout
+* $94   INST         Insert one space
+* $13   HOME         Twice--go to bottom of screen, Thrice--go to middle
+* $93   CLR          Cursor home
+  $04   HELP         Bring up help window
+  $84   SH-HELP      Display help screen
+* $0a   LINEFEED     <nothing>
+* $07   SH-LINEFEED  <nothing>
+* $1b   ESCAPE       Redisplay screen
+* $0e   SH-ESCAPE    <nothing>
+* $03   STOP         <stop some operations>
+* $83   RUN          <nothing>
+
+  $90   CT-1         Clear document
+  $05   CT-2         Clear buffer
+  $1c   CT-3         Enter hexadecimal PETSCII character code
+  $9f   CT-4         Display directory
+  $9c   CT-5         Destroy current document buffer
+  $1e   CT-6         Create new document buffer
+  $1f   CT-7         Display PETSCII code of current character
+* $9e   CT-8         Scroll left margin of status line
+* $12   CT-9         Reverse screen on
+* $92   CT-0         Screen reverse off
+
+  $81   CO-1         Set display to show single buffer
+  $95   CO-2         Set display to show two buffers
+  $96   CO-3         Set display to show three buffers
+  $97   CO-4         Set display to 40 columns, default rows
+  $98   CO-5         Set display to take full screen
+  $99   CO-6         Set display to default number of rows
+  $9a   CO-7         Set display to maximum number of rows
+  $9b   CO-8         Set display to 80 columns, default rows
+
+  $85   F1           Function key 1  : user-defined string
+  $89   SH-F1        Function key 2  : user-defined string
+  $86   F3           Function key 3  : user-defined string
+  $8a   SH-F3        Function key 4  : user-defined string
+  $87   F5           Function key 5  : user-defined string
+  $8b   SH-F5        Function key 6  : user-defined string
+  $88   F7           Function key 7  : user-defined string
+  $8c   SH-F7        Function key 8  : user-defined string
+  $80   CT-F1        Function key 9  : user-defined string
+  $82   CT-F3        Function key 10 : user-defined string
+  $8e   CT-F5        Function key 11 : user-defined string
+  $8f   CT-F7        Function key 12 : user-defined string
+</PRE>
+<P><HR>
+[<A HREF="index.html">Back to the ACE Page</A>]
+</BODY>
+</HTML>

@@ -1,0 +1,127 @@
+<HTML>
+<TITLE>ACE bcode/unbcode Documentation</TITLE>
+<BODY BGCOLOR="#d0d0dd" TEXT="#000000" LINK="#d02030" VLINK="#4030b0">
+
+<H1>ACE bcode/unbcode Documentation</H1>
+
+<P>by Craig Bruce -- for version 1.00 -- June 29, 1995.
+<HR>
+<PRE>
+1. INTRODUCTION
+
+This document contains the documentation for the "bcode" and "unbcode"
+programs for ACE.  There are also (more advanced) versions of these programs
+available in the C programming language for Unix and MS-DOS environments.
+
+These programs allow you to encode binary data into a text format that can
+be e-mailed or posted to USENET newsgroups.  Functionally, they are quite
+similar to the uuencode/uudecode standard Unix utilities, except that these
+programs can use a different encoding technique from "uucode" which allow
+for the automatic splitting, reordering, and incremental reassembly of
+multiple file segments for long files, and provide CRC-32 and size error
+checking on each encoded segment.  These ACE programs will eventually be
+extended to the level of the C-language programs, which can handle uucode
+and hexcode formats in addition to bcode format.
+
+2. BCODE PROGRAM
+
+bcode [-help] [-v] [-u] [-m] [-l max_line_count] [filename ...]
+
+Encode the given files into BCODE format.  This format, like uuencoded
+format, is used for transmitting binary information through a text-only
+medium.  The "-help" flag is used to display "usage" information to stderr.
+The command will exit after encountering the flag, before doing any work.
+
+The "-v" flag means to give "verbose" information about what is going on.
+The "-u" and "-m" flags instruct bcode to output in either Unix (Ascii-Lf)
+or MESS-DOS (Ascii-CrLf) format.  The default is good ole Petscii.
+
+The "-l" flag and value allows you to specify the maximum number of bcoded
+lines to include in each segment of the bcoded data.  When this flag is
+used, output is sent to special output files rather than to stdout (where it
+is usually sent).  One segment is sent to each special output file.  These
+special output files are named after the file being encoded, appended with a
+".b" followed by the at-least-two digit segment number.  If the full name
+would exceed 16 characters, the "basename" is truncated.  If the source file
+includes a path, the path is ignored and the special file is put in the
+current directory.  For example,
+
+bcode -l 800 b:junkfile
+
+would put the bcoded segment data into "junkfile.b01", "junkfile.b02", ...,
+"junkfile.b99", "junkfile.b100", etc., in the current directory.  Each line
+of bcoded data contains 72 characters (which represent 54 raw data bytes),
+so 800 lines will produce 59200 bytes of output (counting CR and LF at the
+end of each line), which is a good size for posting or for mailing to
+brain-damaged mailers (under 64K).  The max_line_count does not include the
+two control lines in the bcode format.
+
+If you include filenames on the command line, then input will be taken from
+them in turn.  Otherwise, input will NOT be taken from stdin and no work
+will be done.  You may include many filenames (and associated aliases) on a
+command line to create a BCODE archive (which should be suffixed ".bca").
+
+If you specify that a file is to be broken into multiple segments for
+encoding, then last segment may be of zero length.  This is not an error and
+will be decoded correctly, although it may be a bit of a pain.
+
+3. UNBCODE PROGRAM
+
+unbcode [-help] [-i] [-v] [-d] [filename ...]
+
+This is a full-blown BCODE decoder.  It will read BCODE data from files
+named in any order and reconstruct the original binary files that were
+encoded using the BCODE program above.  If the "-help" flag is specified,
+usage information will be given and the program will exit.
+
+The three other flags are used to request different levels of operational
+information: informative, verbose, and debugging.  Informative messages
+include when a file is completely pieced back together, verbose information
+includes when a file is opened or closed, and debugging information includes
+a dump of the internal "have" table that keeps track of which segments of
+which files the decoder currently has.  Currently, informative and verbose
+information is hard-wired on.
+
+Intermediate segments are decoded immediately and placed into temporary
+files in the current directory with names like "0BC00001", with different
+numbers.  These files are created and deleted as needed.  Between runs, if
+there are any files that have not yet been completely pieced together, the
+"have" information is saved into "0BC-STAT", which can be listed to see what
+is in the temporary files and which segments of the files are missing.  An
+example of its contents would be:
+
+00001-00001  beg  0000001223  0BC00002  filea
+00001-00001  beg  0000540122  0BC00004  fileb
+00003-00003  mid  0000002832  0BC00001  fileb
+00005-00005  end  0000000023  0BC00003  fileb
+
+The first two columns with the dash between indicate the range of segment
+numbers that are contained in the temporary file.  The next column gives the
+interpretation of the temporary file, indicating if it is the beginning,
+middle, or the end of the complete file being decoded.  The next column
+gives the length of the temporary data (used for error recovery).  The next
+column gives the name of the temporary file, and the final column gives the
+name of the file that the "fragment" belongs to.
+
+The fact that the status of decoding is kept between runs means that you
+don't have to have all of the segments of the final file(s) present at any
+one run.  Error checking is performed on each segment as it is being
+decoded, and if an error is encoutered, the segment will be ignored.
+Because of the "incremental decode" feature, you can obtain correct copies
+of the segments that were found to be in error before and run them through
+again.
+
+This program will recover from all errors in the input data, including one
+tricky case that the C unbcode program released earlier before could not.
+The only ways that things can get fowled up are if unbcode has access
+problems to the temporary files, or if you STOP the program at an
+inopportune time.  To recover from all errors, you just have to delete all
+of the "0BC" temporary files, including "0BC-STAT".
+
+During decoding, this program will overwrite existing "0BC" files or files
+being decoded.
+</PRE>
+<P><HR>
+[<A HREF="index.html">Back to the ACE Page</A>]
+</BODY>
+</HTML>

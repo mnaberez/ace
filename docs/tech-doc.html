@@ -1,0 +1,431 @@
+<HTML>
+<TITLE>ACE Technical Information</TITLE>
+<BODY BGCOLOR="#d0d0dd" TEXT="#000000" LINK="#d02030" VLINK="#4030b0">
+
+<H1>ACE Technical Information</H1>
+
+<P>by Craig Bruce -- for Release #16 -- February 4, 1995.
+<HR>
+<PRE>
+1. INTRODUCTION
+
+This document contains some technical information about ACE that may be of
+interest to technically inclined members of our audience.  Technical
+information about writing applications for ACE can be found in the
+Programmer's Reference Guide documentation, which should be available from
+the same place that you got this document.
+
+2. OVERVIEW MEMORY MAP
+
+Note that the "ace128" and "ace64" programs are functionally identical, except
+that one is set up for the 128 and the other for the 64.  Thus, all of the
+appication binary programs will work with either "ace128" or "ace64".  LOAD
+and RUN the "ace" program and it will load the correct "kernel" for your
+computer.
+
+Here is an overview memory map of ACE-128/64:
+
+$0002-$007f = application work area (0.125K)
+$0080-$00ff = system zero-page storage (0.125K)
+$0100-$01ff = processor stack (0.25K)
+$0200-$0eff = system storage (3.25K)
+$0f00-$0fff = kernel-interface variables (0.25K)
+$1000-$12ff = system storage / free on the C64 (0.75K)
+$1300-$5fff = ACE kernel and device drivers (23.25K)
+$7000-$bfff = application area & stack (20K / configurable size)
+$c000-$edff = free memory (11K)
+$ee00-$eeff = modem receive buffer (0.25K / configurable size)
+$ef00-$efff = modem transmit buffer (0.25K)
+$f000-$f7ff = regular character set (2K)
+$f800-$fbff = vic 40-column screen (1K)
+$fc00-$feff = free memory (0.75K)
+$ff00-$ffff = system storage (0.25K)
+
+or, if you're on a C64 with the soft-80 screen configured:
+
+$c000-$c9ff = free memory (2K)
+$ca00-$caff = modem receive buffer (0.25K / configurable size)
+$cb00-$cbff = modem transmit buffer (0.25K)
+$cc00-$cfff = vic 40-column screen (1K)
+$d000-$d7ff = regular character set (2K)
+$d800-$dfff = soft-80 4-bit character set (2K)
+$e000-$ff3f = bitmapped screen (7.81K)
+$ff40-$ffff = system storage (0.19K)
+
+When I get around to reorganizing the New ACE-128 memory map, it will look
+like the following:
+
+RAM0  $0000  (256)   system zero page
+RAM0  $0100  (256)   system stack page
+RAM0  $0200  (512)   Commodore Kernal work areas / temporary storage
+RAM0  $0400  (1024)  forty-column-screen video RAM
+RAM0  $0800  (512)   ACE inter-bank system-call launch area
+RAM0  $0a00  (256)   Commodore Kernal work area
+RAM0  $0b00  (256)   ACE string buffer
+RAM0  $0c00  (256)   ACE work area
+RAM0  $0d00  (512)   ACE common-RAM code
+RAM0  $0f00  (256)   ACE status-variable storage
+RAM0  $1000  (2048)  eight-bit character set
+RAM0  $1800  (256)   exit-data buffer
+RAM0  $1900  (58880) Application-Program Area
+RAM0  $ff00  (256)   ACE system page
+
+RAM1  $0000  (512)   inaccessible memory
+RAM1  $0200  (3584)  memory hidden beneath the 4K of common RAM -- dynamic alloc
+RAM1  $1000  (32768) ACE-kernel code + miscellaneous storage
+RAM1  $9000  (8192)  disk-cache space
+RAM1  $b000  (20224) dynamically-allocated memory
+RAM1  $ff00  (256)   ACE system page
+
+ram-configuration registers: $ff01=RAM0, $ff02=RAM1 w/IO, $ff03=RAM1, $ff04=R1k
+call code:
+   open:  (6 bytes)
+      sta $ff02
+      jmp kernFileOpen
+return code:
+   return:  (5 bytes)
+      sta $ff01
+      clc
+      rts
+   returnError:  (12 bytes)
+      sta $ff01
+      sta error
+      ldx #$00
+      ldy #$00
+      sec
+      rts
+   internCall:  (10 bytes)
+      sta $ff01
+      jsr syswork+13
+      sta $ff02
+      rts
+   fetch string buffer
+   copy RAM0 to RAM0
+   copy RAM0 to RAMx
+   copy RAMx to RAM0
+   zpload from RAMx
+   zpstore to RAMx
+   load VDC from RAM0
+   store from VDC to RAM0
+   load VIC from RAM0
+   call CHROUT for RAM0
+   call CHRIN for RAM0
+   trigger REU transfer
+   trigger RAMLink transfer
+
+3. BOOTSTRAPPING
+
+More explanation here later.
+
+ace         - the kernel bootstrapper; can be run from either 64 or 128 mode
+ace128      - the kernel for the 128
+ace64       - the kernel for the 64
+config      - the configuration initializer
+.acerc      - the system configuration - this is data not an executable
+config.edit - configuration editor program (written in BASIC)
+acechr-commodore - regular Commodore character set
+acechr-iso8859-1 - ISO 8859-1 "8-bit" character set
+sh          - the command shell
+.ashrc      - the ACE-command-shell auto-execution shell script
+
+4. CONFIGURATION FILE FORMAT OVERVIEW
+
+ACE-128/64 Configuration.sys file format
+
+For devices: device slots "a" to "z" (offset 0 to 127, 32 entries):
+
+0 device driver type
+        0=Kernal non-disk    1=Kernal disk       2=console          3=null
+        4=ramdisk            5=parallel port     6=swiftlink
+1 device primary address / sl:iopage / par:0=clean,1=network
+2 device secondary address / sl:recvBufSize(1-27)
+3 flags / kd:$80=device has CMD real-time clock
+
+Other:
+
+OFF  SIZ  DESC
+---  ---  ----
+$80    1  ramlink device number
+$81    1  ramlink last logical bank allowed to use plus one (norm 255)
+$82    4  real-time clock devices to check [4], 255=unused, 254=SmartWatch
+$86    1  screen saver activation time (in minutes)
+$87    1  RTS assertion-to-modem-acceptance delay period (norm 40)
+$88    8  -unused-
+$90   12  default date in BDC YY:YY:MM:DD:hh:mm:ss:tt:tw:GH:gm:aa
+$9c    4  time-zone string: 3 char + null, lowercase
+$A0    1  C128 bank1 start free page (norm $04)
+$A1    1  C128 bank1 last free page plus one (norm $ff)
+$A2    1  C128 expanded internal memory type:
+          0=none, 1=Curcio-256K/512K, 2=Pessi-256K/512K/1024K
+$A3    1  C128 bank0 last allowed free page plus one (norm $ff)
+$A4    1  C64 soft-80 non-REU _minimum_ prescrolling amount (norm 5)
+$A5    1  C128 last internal bank allowed to use above 2, plus one (norm 8)
+$A6    1  C128 first REU bank allowed to use (norm 0)
+$A7    1  C128 last REU bank allowed to use plus one (norm 255)
+$A8    1  C128 top page of TPA (stack) (norm $c0)
+$A9    1  C128 VDC standard row count (norm 25)
+$AA    1  C128 kilobytes of VDC RAM (norm 16)
+$AB    1  C64 soft-80 REU-hardware-scroll prescroll amount (norm 1)
+$AC    1  C128 80-col prescroll amount (norm 99)
+$AD    1  C128 40-col prescroll amount (norm 99)
+$AE    1  C64 soft-80 software-scoll prescroll amount (norm 99)
+$AF    1  C64 40-col prescroll amount (norm 99)
+$B0    8  C128 80-col color palette: table of eight RGBI codes, offsets:
+          0=char,1=cursor,2=status,3=separat,4=hilite,5=alert,6=border,7=screen
+$B8    8  C128 40-col color palette
+$C0    1  C64 bitmap flags: $80=allow soft-80, $40=make default, $20=REU-scroll
+$C1    1  C64 last allowed page free plus one (norm $ff)
+$C2    1  C64 first REU bank allowed to use (norm 0)
+$C3    1  C64 last REU bank allowed to use (norm 255)
+$C4    1  C64 expanded internal memory type: 0=none, 1=Pessi-256K
+$C5    1  C64 end expanded internal memory banks plus one (norm 4)
+$C6    1  C64 top page of stack (norm $c0)
+$C7    1  video type: 0=NTSC, 1=PAL  (default 0)
+$C8    1  key repeat delay in jiffies (norm 20)
+$C9    1  key repeat rate in jiffies (norm 3)
+$CA    1  console color enable: $80=text, $40=color (default $80)
+$CB    1  input line scrollback line count (default 5)
+$CC    1  controller port #1 device: 0=none, 1=joystick, 2=mouse (default 2)
+$CD    1  controller port #2 device: 0=none, 1=joystick, 2=mouse (default 1)
+$CE    1  C128 VDC maximum number of allowed display rows
+$CF    1  C128 VDC normal-to-interlaced-crossover number of display rows
+$D0    8  C64 80-col color palette (for bitmapped hi-res 80-col screen)
+$D8    8  C64 40-col color palette
+$E0    1  RamLink-RAM partition number
+$E1   13  RamLink-RAM partition name string
+$EE    1  RamLink-Indirect-REU partition number
+$EF   17  RamLink-Indirect-REU partition name string
+$100  32  initial/home working directory ("a:")
+$120  32  user-definable keymatrix-table file, or null ("")
+$140  64  default shell executable-search-path string ("z:","a:",".:","b:"...)
+$180  64  configuration file .xxxrc search path ("z:", "a:", ".:")
+$1C0  32  temporary directory name (".:")
+$1E0  32  name of characterset to load on bootup ("acechr-commodore")
+$200   0  -END-
+
+5. CHARACTER-SET FILE FORMAT
+
+Character sets are stored in a custom format: a 16-byte header followed by a
+32-byte special-character palette followed by a 2048-byte 8-bit-wide
+characterset followed by a 2048-byte 4-bit-wide characterset.  The best way
+to edit this file is with a machine-language monitor.  I can't remember the
+exact format of the header right now, so I'll save that until next time.
+The character palette points to the characters that will be used for the
+codes $80 to $9f in the following displayable character set (Commodore+ISO):
+
+          Craig's Handy ACE PETSCII OUTPUT Guide (including ISO-8859-1)
+
+  0/00 ___rvs_@___   64/40 _____@_____  128/80 __bullet___  192/c0 _____`_____
+  1/01 ___rvs_a___   65/41 _____a_____  129/81 __v_line___  193/c1 _____A_____
+  2/02 ___rvs_b___   66/42 _____b_____  130/82 __h_line___  194/c2 _____B_____
+  3/03 ___rvs_c___   67/43 _____c_____  131/83 ___cross___  195/c3 _____C_____
+  4/04 ___rvs_d___   68/44 _____d_____  132/84 _tl_corner_  196/c4 _____D_____
+  5/05 ___rvs_e___   69/45 _____e_____  133/85 _tr_corner_  197/c5 _____E_____
+  6/06 ___rvs_f___   70/46 _____f_____  134/86 _bl_corner_  198/c6 _____F_____
+  7/07 _BEL/rvs_g_   71/47 _____g_____  135/87 _br_corner_  199/c7 _____G_____
+  8/08 ___rvs_h___   72/48 _____h_____  136/88 ___l_tee___  200/c8 _____H_____
+  9/09 _TAB/rvs_i_   73/49 _____i_____  137/89 ___r_tee___  201/c9 _____I_____
+ 10/0a _BOL/rvs_j_   74/4a _____j_____  138/8a ___t_tee___  202/ca _____J_____
+ 11/0b ___rvs_k___   75/4b _____k_____  139/8b ___b_tee___  203/cb _____K_____
+ 12/0c ___rvs_l___   76/4c _____l_____  140/8c ___heart___  204/cc _____L_____
+ 13/0d _CR_/rvs_m_   77/4d _____m_____  141/8d __diamond__  205/cd _____M_____
+ 14/0e ___rvs_n___   78/4e _____n_____  142/8e ___club____  206/ce _____N_____
+ 15/0f ___rvs_o___   79/4f _____o_____  143/8f ___spade___  207/cf _____O_____
+ 16/10 ___rvs_p___   80/50 _____p_____  144/90 _s_circle__  208/d0 _____P_____
+ 17/11 _VT_/rvs_q_   81/51 _____q_____  145/91 __circle___  209/d1 _____Q_____
+ 18/12 ___rvs_r___   82/52 _____r_____  146/92 ___pound___  210/d2 _____R_____
+ 19/13 ___rvs_s___   83/53 _____s_____  147/93 _CLS/check_  211/d3 _____S_____
+ 20/14 _BS_/rvs_t_   84/54 _____t_____  148/94 ____pi_____  212/d4 _____T_____
+ 21/15 ___rvs_u___   85/55 _____u_____  149/95 ____+/-____  213/d5 _____U_____
+ 22/16 ___rvs_v___   86/56 _____v_____  150/96 __divide___  214/d6 _____V_____
+ 23/17 ___rvs_w___   87/57 _____w_____  151/97 __degree___  215/d7 _____W_____
+ 24/18 ___rvs_x___   88/58 _____x_____  152/98 _c_checker_  216/d8 _____X_____
+ 25/19 ___rvs_y___   89/59 _____y_____  153/99 _f_checker_  217/d9 _____Y_____
+ 26/1a ___rvs_z___   90/5a _____z_____  154/9a _solid_sq__  218/da _____Z_____
+ 27/1b ___rvs_[___   91/5b _____[_____  155/9b __cr_char__  219/db _____{_____
+ 28/1c ___rvs_\___   92/5c _____\_____  156/9c _up_arrow__  220/dc _____|_____
+ 29/1d ___rvs_]___   93/5d _____]_____  157/9d _down_arro_  221/dd _____}_____
+ 30/1e ___rvs_^___   94/5e _____^_____  158/9e _left_arro_  222/de _____~_____
+ 31/1f _rvs_under_   95/5f _UNDERLINE_  159/9f _right_arr_  223/df ___HOUSE___
+ 32/20 ___SPACE___   96/60 _A`_grave__  160/a0 _req space_  224/e0 _a`_grave__
+ 33/21 _____!_____   97/61 _A'_acute__  161/a1 _!_invertd_  225/e1 _a'_acute__
+ 34/22 _____"_____   98/62 _A^_circum_  162/a2 ___cent____  226/e2 _a^_circum_
+ 35/23 _____#_____   99/63 _A~_tilde__  163/a3 ___pound___  227/e3 _a~_tilde__
+ 36/24 _____$_____  100/64 _A"_dieres_  164/a4 __currency_  228/e4 _a"_dieres_
+ 37/25 _____%_____  101/65 _A__ring___  165/a5 ____yen____  229/e5 _a__ring___
+ 38/26 _____&_____  102/66 _AE________  166/a6 _|_broken__  230/e6 _ae________
+ 39/27 _____'_____  103/67 _C,cedilla_  167/a7 __section__  231/e7 _c,cedilla_
+ 40/28 _____(_____  104/68 _E`_grave__  168/a8 __umulaut__  232/e8 _e`_grave__
+ 41/29 _____)_____  105/69 _E'_acute__  169/a9 _copyright_  233/e9 _e'_acute__
+ 42/2a _____*_____  106/6a _E^_circum_  170/aa __fem_ord__  234/ea _e^_circum_
+ 43/2b _____+_____  107/6b _E"_dieres_  171/ab _l_ang_quo_  235/eb _e"_dieres_
+ 44/2c _____,_____  108/6c _I`_grave__  172/ac ____not____  236/ec _i`_grave__
+ 45/2d _____-_____  109/6d _I'_acute__  173/ad _syl_hyphn_  237/ed _i'_acute__
+ 46/2e _____._____  110/6e _I^_circum_  174/ae _registerd_  238/ee _i^_circum_
+ 47/2f _____/_____  111/6f _I"_dieres_  175/af _overline__  239/ef _i"_dieres_
+ 48/30 _____0_____  112/70 _D-_Eth_lr_  176/b0 __degrees__  240/f0 _o^x_Eth_s_
+ 49/31 _____1_____  113/71 _N~_tilde__  177/b1 ____+/-____  241/f1 _n~_tilda__
+ 50/32 _____2_____  114/72 _O`_grave__  178/b2 _2_supersc_  242/f2 _o`_grave__
+ 51/33 _____3_____  115/73 _O'_acute__  179/b3 _3_supersc_  243/f3 _o'_acute__
+ 52/34 _____4_____  116/74 _O^_circum_  180/b4 ___acute___  244/f4 _o^_circum_
+ 53/35 _____5_____  117/75 _O~_tilde__  181/b5 ____mu_____  245/f5 _o~_tilde__
+ 54/36 _____6_____  118/76 _O"_dieres_  182/b6 _paragraph_  246/f6 _o"_dieres_
+ 55/37 _____7_____  119/77 __multiply_  183/b7 __mid_dot__  247/f7 __divide___
+ 56/38 _____8_____  120/78 _O/_slash__  184/b8 __cedilla__  248/f8 _o/_slash__
+ 57/39 _____9_____  121/79 _U`_grave__  185/b9 _1_supersc_  249/f9 _u`_grave__
+ 58/3a _____:_____  122/7a _U'_acute__  186/ba __mas_ord__  250/fa _u'_acute__
+ 59/3b _____;_____  123/7b _U^_circum_  187/bb _r_ang_quo_  251/fb _u^_circum_
+ 60/3c _____<_____  124/7c _U"_dieres_  188/bc ____1/4____  252/fc _u"_dieres_
+ 61/3d _____=_____  125/7d _Y'_acute__  189/bd ____1/2____  253/fd _y'_acute__
+ 62/3e _____>_____  126/7e _cap_thorn_  190/be ____3/4____  254/fe _sm_thorn__
+ 63/3f _____?_____  127/7f _Es-sed_B__  191/bf _?_invertd_  255/ff _y"_dieres_
+
+The images of the characters in the charactersets each take up eighty bytes
+and are ordered as in the table above.  The 8-bit-wide is in the regular
+format, and the four-bit-wide images are arranged as two images of each
+character in the upper and lower nybbles of the eight bytes used to encode
+them.
+
+6. KEYMATRIX FILE FORMAT
+
+The keymatrix file format is simply concatenation of seven arrays of 88
+bytes each.  The 88-byte arrays contain the character codes to generate for
+when a user pressed one of the following physical keys:
+
+    \                           COLUMNS:
+ROWS:\
+      \    0       1       2       3       4       5       6       7
+       +-------+-------+-------+-------+-------+-------+-------+-------+ code
+   0   | DELETE| RETURN| RIGHT |  F7   |  F1   |  F3   |  F5   | DOWN  | (0)
+       +-------+-------+-------+-------+-------+-------+-------+-------+
+   1   |   3   |   W   |   A   |   4   |   Z   |   S   |   E   |L-SHIFT| (8)
+       +-------+-------+-------+-------+-------+-------+-------+-------+
+   2   |   5   |   R   |   D   |   6   |   C   |   F   |   T   |   X   | (16)
+       +-------+-------+-------+-------+-------+-------+-------+-------+
+   3   |   7   |   Y   |   G   |   8   |   B   |   H   |   U   |   V   | (24)
+       +-------+-------+-------+-------+-------+-------+-------+-------+
+   4   |   9   |   I   |   J   |   0   |   M   |   K   |   O   |   N   | (32)
+       +-------+-------+-------+-------+-------+-------+-------+-------+
+   5   |   +   |   P   |   L   |   -   |   .   |   :   |   @   |   ,   | (40)
+       +-------+-------+-------+-------+-------+-------+-------+-------+
+   6   |   \   |   *   |   ;   | HOME  |R-SHIFT|   =   |   ^   |   /   | (48)
+       +-------+-------+-------+-------+-------+-------+-------+-------+
+   7   |   1   |   _   |CONTROL|   2   | SPACE |COMMODR|   Q   | STOP  | (56)
+       +-------+-------+-------+-------+-------+-------+-------+-------+
+   8   | HELP  |   8   |   5   |  TAB  |   2   |   4   |   7   |   1   | (64)
+       +-------+-------+-------+-------+-------+-------+-------+-------+
+   9   |  ESC  |   +   |   -   |  LF   | ENTER |   6   |   9   |   3   | (72)
+       +-------+-------+-------+-------+-------+-------+-------+-------+
+  10   |  ALT  |   0   |   .   |  UP   | DOWN  | LEFT  | RIGHT |NO-SCRL| (80)
+       +-------+-------+-------+-------+-------+-------+-------+-------+
+
+Note that the C128's keyboard has all eleven rows (0-10) whereas the C64's
+keyboard only has the first eight (0-7).  The entires with $00 mean that
+pressing the associated key does nothing.  There are multiple key matrices
+to produce the codes for use with various "shift" keys.  The order of the
+seven key matrices is:
+
+    1. Normal (unshifted)
+    2. Shift
+    3. Commodore
+    4. Control
+    5. Alternate
+    6. CapsLock
+    7. Shift+Commodore
+
+The character codes generated should correspond to the following table:
+
+                Craig's Handy ACE PETSCII INPUT Guide (ISO-8859-1)
+
+  0/00 __<none>___   64/40 _____@_____  128/80 ___Ct-F1___  192/c0 __Sh-*__`__
+  1/01 _Ct-RETURN_   65/41 _____a_____  129/81 ___Co-1____  193/c1 _____A_____
+  2/02 __Sh-TAB___   66/42 _____b_____  130/82 ___Ct-F3___  194/c2 _____B_____
+  3/03 ___STOP____   67/43 _____c_____  131/83 __Sh-STOP__  195/c3 _____C_____
+  4/04 ___HELP____   68/44 _____d_____  132/84 __Sh-HELP__  196/c4 _____D_____
+  5/05 ___Ct-2____   69/45 _____e_____  133/85 ____F1_____  197/c5 _____E_____
+  6/06 __Sh-LEFT__   70/46 _____f_____  134/86 ____F3_____  198/c6 _____F_____
+  7/07 ___Sh-LF___   71/47 _____g_____  135/87 ____F5_____  199/c7 _____G_____
+  8/08 __Co-DEL___   72/48 _____h_____  136/88 ____F7_____  200/c8 _____H_____
+  9/09 ____TAB____   73/49 _____i_____  137/89 ____F2_____  201/c9 _____I_____
+ 10/0a _LINEFEED__   74/4a _____j_____  138/8a ____F4_____  202/ca _____J_____
+ 11/0b _Sh-RIGHT__   75/4b _____k_____  139/8b ____F6_____  203/cb _____K_____
+ 12/0c ___Co-UP___   76/4c _____l_____  140/8c ____F8_____  204/cc _____L_____
+ 13/0d __RETURN___   77/4d _____m_____  141/8d _Sh-RETURN_  205/cd _____M_____
+ 14/0e _Sh-ESCAPE_   78/4e _____n_____  142/8e ___Ct-F5___  206/ce _____N_____
+ 15/0f __Co-DOWN__   79/4f _____o_____  143/8f ___Ct-F7___  207/cf _____O_____
+ 16/10 __Co-LEFT__   80/50 _____p_____  144/90 ___Ct-1____  208/d0 _____P_____
+ 17/11 ___DOWN____   81/51 _____q_____  145/91 ____UP_____  209/d1 _____Q_____
+ 18/12 ____RVS____   82/52 _____r_____  146/92 __RVS-OFF__  210/d2 _____R_____
+ 19/13 ___HOME____   83/53 _____s_____  147/93 ____CLR____  211/d3 _____S_____
+ 20/14 ____DEL____   84/54 _____t_____  148/94 ___INST____  212/d4 _____T_____
+ 21/15 _Co-RIGHT__   85/55 _____u_____  149/95 ___Co-2____  213/d5 _____U_____
+ 22/16 ___Ct-UP___   86/56 _____v_____  150/96 ___Co-3____  214/d6 _____V_____
+ 23/17 __Ct-DOWN__   87/57 _____w_____  151/97 ___Co-4____  215/d7 _____W_____
+ 24/18 __Ct-TAB___   88/58 _____x_____  152/98 ___Co-5____  216/d8 _____X_____
+ 25/19 __Ct-LEFT__   89/59 _____y_____  153/99 ___Co-6____  217/d9 _____Y_____
+ 26/1a _Ct-RIGHT__   90/5a _____z_____  154/9a ___Co-7____  218/da _____Z_____
+ 27/1b ____ESC____   91/5b _____[_____  155/9b ___Co-8____  219/db __Sh-+__{__
+ 28/1c ___Ct-3____   92/5c _____\_____  156/9c ___Ct-5____  220/dc __Sh-\__|__
+ 29/1d ___RIGHT___   93/5d _____]_____  157/9d ___LEFT____  221/dd __Sh--__}__
+ 30/1e ___Ct-6____   94/5e _____^_____  158/9e ___Ct-8____  222/de __Sh-^__~__
+ 31/1f ___Ct-7____   95/5f _BACKARROW_  159/9f ___Ct-4____  223/df _Sh-BACKAR_
+ 32/20 ___SPACE___   96/60 ___Alt-@___  160/a0 __Comm-@___  224/e0 __Ctrl-@___
+ 33/21 _____!_____   97/61 ___Alt-A___  161/a1 __Comm-A___  225/e1 __Ctrl-A___
+ 34/22 _____"_____   98/62 ___Alt-B___  162/a2 __Comm-B___  226/e2 __Ctrl-B___
+ 35/23 _____#_____   99/63 ___Alt-C___  163/a3 __Comm-C___  227/e3 __Ctrl-C___
+ 36/24 _____$_____  100/64 ___Alt-D___  164/a4 __Comm-D___  228/e4 __Ctrl-D___
+ 37/25 _____%_____  101/65 ___Alt-E___  165/a5 __Comm-E___  229/e5 __Ctrl-E___
+ 38/26 _____&_____  102/66 ___Alt-F___  166/a6 __Comm-F___  230/e6 __Ctrl-F___
+ 39/27 _____'_____  103/67 ___Alt-G___  167/a7 __Comm-G___  231/e7 __Ctrl-G___
+ 40/28 _____(_____  104/68 ___Alt-H___  168/a8 __Comm-H___  232/e8 __Ctrl-H___
+ 41/29 _____)_____  105/69 ___Alt-I___  169/a9 __Comm-I___  233/e9 __Ctrl-I___
+ 42/2a _____*_____  106/6a ___Alt-J___  170/aa __Comm-J___  234/ea __Ctrl-J___
+ 43/2b _____+_____  107/6b ___Alt-K___  171/ab __Comm-K___  235/eb __Ctrl-K___
+ 44/2c _____,_____  108/6c ___Alt-L___  172/ac __Comm-L___  236/ec __Ctrl-L___
+ 45/2d _____-_____  109/6d ___Alt-M___  173/ad __Comm-M___  237/ed __Ctrl-M___
+ 46/2e _____._____  110/6e ___Alt-N___  174/ae __Comm-N___  238/ee __Ctrl-N___
+ 47/2f _____/_____  111/6f ___Alt-O___  175/af __Comm-O___  239/ef __Ctrl-O___
+ 48/30 _____0_____  112/70 ___Alt-P___  176/b0 __Comm-P___  240/f0 __Ctrl-P___
+ 49/31 _____1_____  113/71 ___Alt-Q___  177/b1 __Comm-Q___  241/f1 __Ctrl-Q___
+ 50/32 _____2_____  114/72 ___Alt-R___  178/b2 __Comm-R___  242/f2 __Ctrl-R___
+ 51/33 _____3_____  115/73 ___Alt-S___  179/b3 __Comm-S___  243/f3 __Ctrl-S___
+ 52/34 _____4_____  116/74 ___Alt-T___  180/b4 __Comm-T___  244/f4 __Ctrl-T___
+ 53/35 _____5_____  117/75 ___Alt-U___  181/b5 __Comm-U___  245/f5 __Ctrl-U___
+ 54/36 _____6_____  118/76 ___Alt-V___  182/b6 __Comm-V___  246/f6 __Ctrl-V___
+ 55/37 _____7_____  119/77 ___Alt-W___  183/b7 __Comm-W___  247/f7 __Ctrl-W___
+ 56/38 _____8_____  120/78 ___Alt-X___  184/b8 __Comm-X___  248/f8 __Ctrl-X___
+ 57/39 _____9_____  121/79 ___Alt-Y___  185/b9 __Comm-Y___  249/f9 __Ctrl-Y___
+ 58/3a _____:_____  122/7a ___Alt-Z___  186/ba __Comm-Z___  250/fa __Ctrl-Z___
+ 59/3b _____;_____  123/7b ___Alt-[___  187/bb __Comm-[___  251/fb __Ctrl-[___
+ 60/3c _____<_____  124/7c ___Alt-\___  188/bc __Comm-\___  252/fc __Ctrl-\___
+ 61/3d _____=_____  125/7d ___Alt-]___  189/bd __Comm-]___  253/fd __Ctrl-]___
+ 62/3e _____>_____  126/7e ___Alt-^___  190/be __Comm-^___  254/fe __Ctrl-^___
+ 63/3f _____?_____  127/7f _Alt-BAKAR_  191/bf _Comm-BKAR_  255/ff _Ctrl-BKAR_
+
+7. VBM FILE FORMAT
+
+There are two VBM file formats in existence: Version #2 and Version #3.  For
+Version #3, there are two variations available: Compressed and Uncompressed.
+All VBM files begin with the following three-byte identifier: $42, $4d, $cb.
+This is followed by the version number, either $02 or $03, followed by the
+image width and height, each encoded in 16 bits in high/low order.
+
+For Version #2 images, the image data follows, but Version #3 images have
+more header information: five bytes for the compression-encoding meta data
+followed by a two $00 bytes (reserved), followed by a 16-bit high/low field
+giving telling the length of the comment block, followed by up to 64K of
+comment text (in PETSCII), followed by the image data.  If the image is
+compressed, then the compression-encoding meta data is: the repeat code
+(usually $XX: for coding repetitions of any arbitrary image byte), the zero
+code (usually $XX, for coding three or more repetitions of the image-byte
+$00), the ... oh never mind.  I'll fill this in next time.  You can examine
+the C program to see how the images are encoded.
+
+8. CONCLUSION
+
+Cool eh?
+</PRE>
+<P><HR>
+[<A HREF="index.html">Back to the ACE Page</A>]
+</BODY>
+</HTML>

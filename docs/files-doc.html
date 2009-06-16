@@ -1,0 +1,160 @@
+<HTML>
+<TITLE>ACE File Summary</TITLE>
+<BODY BGCOLOR="#d0d0dd" TEXT="#000000" LINK="#d02030" VLINK="#4030b0">
+
+<H1>ACE File Summary</H1>
+
+<P>by Craig Bruce -- for Release #16 -- February 4, 1997.
+<HR>
+<PRE>
+Documentation files:
+
+user-guide.html  - ACE User's Guide
+files-doc.html   - list of available files: this file
+as-doc.html      - documentation for the assembler program
+bcode-doc.html   - documentation for the bcode/unbcode programs
+term-doc.html    - documentation for the terminal program
+fx.doc-html      - documentation for the File eXchange program
+prg-doc.html     - ACE Programmer's Reference Guide
+tech-doc.html    - technical information about ACE
+tutor-doc.html   - placeholder for a beginner's tutorial introduction to ACE
+
+System binary files (in "aceNNL.sfx"):
+
+ace              - the kernel bootstrapper; runnable from either 64 or 128 mode
+ace128           - the kernel for the C128
+ace64            - the kernel for the C64
+config           - the configuration-initializer program
+.acerc           - the system configuration - this is data, not an executable
+config.edit      - configuration-editor program (written in BASIC)
+acechr-standard  - standard ACE character set (special graphic characters)
+acechr-commodore - regular Commodore character set
+acechr-iso-ace   - ISO 8859-1 character set, with ACE 4-bit images
+acechr-iso-nova  - ISO 8859-1 character set, with Novaterm 4-bit images
+acechr-iso-wide  - ISO 8859-1 character set, with Novaterm-"Wide" 4-bit images
+acechr-iso-short - ISO 8859-1 character set, with Novaterm-"Short" 4-bit images
+acechr-ansi-ace  - ANSI character set, with ACE 4-bit images
+acechr-ansi-nova - ANSI character set, with Novaterm 4-bit images
+acechr-ansi-wide - ANSI character set, with Novaterm-"Wide" 4-bit images
+acechr-ans-short - ANSI character set, with Novaterm-"Short" 4-bit images
+acechr-ans-perry - ANSI character set, with "Perryfont" :-) 4-bit images
+acekey-qwerty    - regular qwerty key matrix (also built in)
+acekey-dvorak    - Dvorak key matrix
+sh               - the command shell (really, an application prog)
+.ashrc           - the ACE-command-shell auto-execution shell script
+
+Application binary programs (in "aceNNL.sfx"):
+
+cp          - copy files
+rm          - remove files (scratch)
+mv          - rename files (named for Unix "mv"=="move")
+mkdir       - create a new directory (flat name)
+rmdir       - remove an existing empty directory (flat name)
+wc          - count words, lines, characters of files
+grep        - search for a substring in files (from Unix "grep")
+tr          - translate from one character set to another
+sort        - sort lines of files
+wrap        - wrap lines longer than 75 characters
+date        - display current date and time
+forty       - switch to 40-col screen, slow mode
+eighty      - switch to 80-col screen, fast mode on 128, or soft-80 on 64
+read        - read files (for testing)
+mem         - display available dynamic and transient-program-area memory
+hello       - dumb little "hello world" example program
+window      - set the current window dimensions
+acechr      - characterset loader
+keymat      - key-matrix loader
+head        - display the first N lines of a file, donated by Jake Hamby
+jif         - display the current jiffy-clock time
+mousetest   - mouse/graphics demo program
+
+more        - full-screen file viewer
+uuencode    - encode files into uuencoded format
+uudecode    - decode files from uuencoded format
+bcode       - encode files into BCODE format
+unbcode     - decode files from BCODE format
+crc32       - display CRC-32 values for files
+kar         - KAR (Kevin's ARchiver) file archiver (all-text format)
+unkar       - KAR (Kevin's ARchiver) file dearchiver
+vbm         - VBM bitmap-file viewer
+vbmpr       - VBM bitmap-file (v2 only) printer for Epson-compatible printers
+as          - one-pass assembler
+term        - simple VT-100 terminal-emulation program
+fx          - custom File eXchange (upload/download) program
+z           - ZED text editor
+
+System source files (in "aceNN-syssrc.kar"):
+
+acehead.s        - bud/ace header file for all ACE programs
+kernhead.s       - bud/ace header file for the kernel and configuration programs
+ace.s            - buddy main source file: low-level system stuff + includes
+acecall.s        - buddy source for most of the file calls
+acemem.s         - buddy source for memory and process management calls
+acecon.s         - buddy source for console driver
+acewin.s         - buddy source for interface to screen drivers
+acevdc.s         - buddy source for C128 VDC 80-column screen driver
+acevic.s         - buddy source for C128/C64 VIC 40-column screen driver
+acesoft80.s      - buddy source for C64 VIC soft-80-column screen driver
+acerd.s          - buddy source for RAMdisk device driver
+aceswift.s       - buddy source for SwiftLink device driver
+acepar.s         - buddy source for parallel-port device driver
+acekey-qwerty.s  - ace-as source for the qwerty key matrix
+acekey-dvorak.s  - ace-as source for the Dvorak key matrix
+config.s         - buddy configuration bootstrapping program
+sh.s             - buddy source for command-shell program
+
+Application source files (in "aceNN-appsrc.kar"):
+
+cp.s          - buddy source for "cp" (copy)
+rm.s          - buddy source for "rm" (remove)
+mv.s          - buddy source for "mv" (move)
+mkdir.s       - buddy source for "mkdir" (make directory)
+rmdir.s       - buddy source for "rmdir" (remove directory)
+wc.s          - buddy source for "wc" (word count)
+grep.s        - buddy source for "grep" (g??? regular expression p???)
+tr.s          - buddy source for "tr" (translate)
+sort.s        - buddy source for "sort"
+wrap.s        - buddy source for "wrap" (wrap lines)
+date.s        - buddy source for "date"
+forty.s       - buddy source for "forty"
+eighty.s      - buddy source for "eighty"
+read.s        - buddy source for "read" (read files)
+mem.s         - buddy source for "mem" (memory status)
+hello.s       - buddy source for "hello" (hello world)
+window.s      - buddy source for "window"
+chrset.s      - buddy source for "chset" (character set)
+keymat.s      - buddy source for "keymat" (key matrix)
+head.s        - ace-as source for "head" (head)
+jif.s         - ace-as source for "jif" (time display)
+mousetest.s   - ace-as source for "mousetest"
+
+more.s        - buddy source for "more"
+uuencode.s    - buddy source for "uuencode" (unix-to-unix encode)
+uudecode.s    - buddy source for "uudecode" (unix-to-unix decode)
+bcode.s       - buddy source for "bcode" (bruce encode)
+unbcode.s     - buddy source for "unbcode" (un bruce encode)
+unbcodehelp.s - buddy source supplement to "unbcode.s"
+crc32.s       - buddy source for "crc32" (cyclic redundancy check, 32-bit)
+crc32a.s      - buddy source for "crc32a" (cyclic redundancy check, 32-bit, A)
+kar.s         - buddy source for "kar" (Kevin's archiver)
+unkar.s       - buddy source for "unkar" (un Kevin's archiver)
+vbm.s         - ace-as source for "vbm" (view bitmap)
+vbmpr.s       - ace-as source for "vbmpr" (view bitmap print)
+as.s          - buddy source for "as" (assembler)
+ashelp.s      - buddy source supplement to "as.s"
+term.s        - ace-as source for "term" (terminal emulator)
+fx.s          - ace-as source for "fx" (file exchange)
+z.s           - ace-as source for "z" (Zen editor)
+
+Source files for related Unix programs (in "aceNN-usrc.kar"):
+
+bcode.doc     - documentation for the ANSI-C bcode/unbcode programs
+bcode.c       - the ANSI-C bcode-encoder program
+unbcode.c     - the ANSI-C bcode-decoder program
+pbmtovbm.c    - the ANSI-C PBM/XBM/VBM file converter program
+fx.c          - the ANSI-C File-eXchange Server program
+</PRE>
+<P><HR>
+[<A HREF="index.shtml">Back to the ACE Page</A>]
+</BODY>
+</HTML>

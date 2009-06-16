@@ -1,0 +1,1991 @@
+<HTML>
+<TITLE>ACE-16 User's Guide</TITLE>
+<BODY BGCOLOR="#d0d0dd" TEXT="#000000" LINK="#d02030" VLINK="#4030b0">
+
+<H1>ACE-128/64 User's Guide</H1>
+
+by Craig Bruce -- for Release #16 -- February 9, 1997.
+
+<HR>
+<H2>1. INTRODUCTION</H2>
+
+<P>ACE is an operating system for the Commodore 128 and Commodore 64 that
+provides a Unix-like command-shell environment.  All ACE programs will run
+on either a C128 (in 128 mode) or a C64.  BTW, "ACE" means "Advanced
+Computing Environment" (well, advanced for the 128/64).
+
+<P>This release contains the following improvements over the previous
+release:
+
+<UL>
+<LI>Support has been added to the SwiftLink driver to also fully support the
+Turbo232 and its 57.6, 115.2, and 230.4-kbps modes.  The Turbo232 is
+auto-detected, so there is no configuration option.  A stock C64 can handle
+up to 57.6kbps, a stock C128, 115.2kbps, and a SuperCPU at 20 MHz, the whole
+230.4 kbps.  I was unable to really test the 230.4kbps mode since I have
+nothing to connect it to (my 28.8 modem and my PC only go up to 115.2kbps
+;-) ).  I have changed the receive buffer to always be 256 bytes in size for
+greater efficiency.
+
+<P><LI>Specific support has been added for the SuperCPU-64, including
+optimizing the memory-mirroring mode for maximum performance.  The SuperCPU
+is auto- detected, so there is no configuration option.  Man, does it
+scream!  Really, the bitmapped screen works a lot faster than do the xterm
+windows on my Pentium-120 Linux box, making X-Windows a bit of a step down
+for performance. ;-)
+
+<P><LI>ACE will auto-detect whether you have a C64 or C128 keyboard and will
+scan it appropriately.  This means that on a C128 in C64 or SuperCPU-64
+mode, you can use the whole keyboard.  One exception is that the CAPS LOCK
+key can't be read with the SuperCPU (for hardware reasons), so the Co-STOP
+combination toggles CAPS mode (as with the regular C64 keyboard).
+
+<P><LI>ACEterm now supports colors and more video modes.  Co-1=use full
+screen, Co-2=use 24 lines, Co-3=normal screen, Co-4=use 40 cols, Co-8=use 80
+cols.
+
+<P><LI>The "uuencode" command have been extended to optionally generate and
+view ASCII files, respectively.
+
+<P><LI>The screen driver code in the kernel has been reorganized and
+optimized, and so was the SwiftLink/Turbo232 driver.
+
+<P><LI>The "jiffy" rate on the PAL C64 has been changed to 60 Hz, but it is
+still 50 Hz on PAL C128s for technical reasons.
+
+<P><LI>A number of minor bugs have been fixed.  Included is kind of an ugly
+one which caused every 128th file open call to fail, because I didn't know
+that you can't open logical file #0 on the C64 (you can on the C128).  Also,
+the scroll-back buffer didn't properly mark the memory allocated to it,
+which caused a problem if you ran out of memory.  Also, the RAMLink
+Memory/REU partition parameters in the configuration now work.
+
+<P><LI>Unfortunately, I didn't get around to the big jobs of working on ZED
+and ACEterm.  Also, if you are using a C64 with some form of supported
+memory expansion, then you will probably want to change the configuration
+for the top of the "app space" to $d0, since I had to make it very low in
+order to fit the command shell in the ram disk.  It's so low that you can't
+run the assembler program without raising it.  You can also raise it if your
+deactivate the soft-80 screen (which frees up about 12K).  </UL>
+
+<P>This distribution consists of the following files.  System files:
+
+<PRE>
+ace              - the kernel bootstrapper; runnable from either 64 or 128 mode
+ace128           - the kernel for the C128
+ace64            - the kernel for the C64
+config           - the configuration-initializer program
+.acerc           - the system configuration - this is data, not an executable
+config.edit      - configuration-editor program (written in BASIC)
+acechr-standard  - standard ACE character set (special graphic characters)
+acechr-commodore - regular Commodore character set
+acechr-iso-ace   - ISO 8859-1 character set, with ACE 4-bit images
+acechr-iso-nova  - ISO 8859-1 character set, with Novaterm 4-bit images
+acechr-iso-wide  - ISO 8859-1 character set, with Novaterm-"Wide" 4-bit images
+acechr-iso-short - ISO 8859-1 character set, with Novaterm-"Short" 4-bit images
+acechr-ansi-ace  - ANSI character set, with ACE 4-bit images
+acechr-ansi-nova - ANSI character set, with Novaterm 4-bit images
+acechr-ansi-wide - ANSI character set, with Novaterm-"Wide" 4-bit images
+acechr-ans-short - ANSI character set, with Novaterm-"Short" 4-bit images
+acechr-ans-perry - ANSI character set, with "Perryfont" :-) 4-bit images
+acekey-qwerty    - regular qwerty key matrix (also built in)
+acekey-dvorak    - Dvorak key matrix
+sh               - the command shell (really, an application prog)
+.ashrc           - the ACE-command-shell auto-execution shell script
+</PRE>
+
+<P>Application programs (explained in Section 6.3):
+
+<PRE>
+cp          - copy files
+rm          - remove files (scratch)
+mv          - rename files (named for Unix "mv"=="move")
+mkdir       - create a new directory (flat name)
+rmdir       - remove an existing empty directory (flat name)
+wc          - count words, lines, characters of files
+grep        - search for a substring in files (from Unix "grep")
+tr          - translate from one character set to another
+sort        - sort lines of files
+wrap        - wrap lines longer than 75 characters
+date        - display current date and time
+forty       - switch to 40-col screen, slow mode
+eighty      - switch to 80-col screen, fast mode on 128, or soft-80 on 64
+read        - read files (for testing)
+mem         - display available dynamic and transient-program-area memory
+hello       - dumb little "hello world" example program
+window      - set the current window dimensions
+acechr      - characterset loader
+keymat      - key-matrix loader
+head        - display the first N lines of a file, donated by Jake Hamby
+jif         - display the current jiffy-clock time
+mousetest   - mouse/graphics demo program
+
+more        - full-screen file viewer
+uuencode    - encode files into uuencoded format
+uudecode    - decode files from uuencoded format
+bcode       - encode files into BCODE format
+unbcode     - decode files from BCODE format
+crc32       - display CRC-32 *B* values for files (new standard)
+crc32a      - display CRC-32 *A* values for files (old standard)
+kar         - KAR (Kevin's ARchiver) file archiver (all-text format)
+unkar       - KAR (Kevin's ARchiver) file dearchiver
+vbm         - VBM bitmap-file viewer
+vbmpr       - VBM bitmap-file (v2 only) printer for Epson-compatible printers
+as          - one-pass assembler
+term        - simple VT-100 terminal-emulation program
+fx          - custom File eXchange (upload/download) program
+z           - ZED text editor
+</PRE>
+
+<P>These binary programs are supplied in BCODEd archive format, in two
+separate files: one for system files and one for application files (one file
+would be too big for some systems).  The "unbcode" program included here
+will decode this format of archive, but this is a Catch-22, so you will have
+to either use a previous release of ACE to decode this release, or you'll
+have to get the C-language "unbcode" program for Unix and MS-DOS.  I used to
+distribute the binaries in uuencoded format, but I have switched to BCODE
+format so that people will not accidentally corrupt their downloads (and for
+political reasons).  The files may also be available in ".SFX" format too,
+sometime.  In the future, I may be making distributions in ".CSX" (Craig's
+Self-eXtracting) format, which, of course, will be technologically superior
+to ".SFX".
+
+<P>Note that the "ace128" and "ace64" programs are functionally identical,
+except that one is set up for the 128 and the other for the 64.  Thus, all
+of the appication binary programs will work with either "ace128" or "ace64".
+LOAD and RUN the "ace" program and it will load the correct "kernel" for
+your computer.  Or, you can change the first line of the "ace" program to
+load a different system configuration and save it with a name like
+"ace-bigmem" or something, and run that when you want to use the alternate
+system configuration.
+
+<P>The Buddy- and ACEassembler source code files are also publicly available
+in ".KAR" format.  Most smaller programs are in Buddy format (except for the
+kernel itself) and most bigger programs are in the ACEassembler format.  You
+should note that, with the exception of conditional and macro assembly,
+ACEassembler format is pretty much a superset of Buddy format.  See the
+"aceNN-files.doc" documentation file for a list of the various files that
+are available.
+
+<HR>
+<H2>2. USING THE SYSTEM</H2>
+
+<P>When ACE starts, it loads and executes the command shell (among other
+things), gives you a prompt and waits for you to give it a command.  A
+command has the following format:
+
+<PRE>
+programname arg1 arg2 ... argN
+</PRE>
+
+<P>The programname can be any of the following built-in commands (covered in
+Section 6.1):
+
+<PRE>
+echo       - print the given arguments to stdout
+clear      - clear the screen
+cls        - same as "clear"
+dir        - clear the screen and give a long-form directory listing
+d          - same as "directory", but no clear screen
+ls         - give a multi-column short-form directory listing
+clsl       - combination of "cls" and "ls"
+cd         - change the current working device/directory
+cat        - display the named files to stdout
+exit       - exit from the command shell (perhaps back to BASIC)
+x          - same as "exit"
+dos        - give a Commodore dos command to the current device (OPEN1,dv,15..)
+@          - same as "dos"
+path       - set the path to search for external programs
+sh         - invoke the shell again as a sub-shell
+</PRE>
+
+<P>or programname can be for any of the external programs provided with this
+distribution.  You'll have to forgive my personal taste in command names and
+abbreviations (until the "alias" shell feature is finally implemented).
+
+<H3>2.1. INPUT/OUTPUT REDIRECTION</H3>
+
+<P>The three Unix standard files are supported:
+
+<PRE>
+stdin    - where the default input comes from (usually the keyboard)
+stdout   - where the default output goes to (usually the screen)
+stderr   - where error messages are sent to (usually the screen)
+</PRE>
+
+<P>To temporarally redirect these standard file streams for the execution of
+a command, you can use the following incantations on a command line:
+
+<PRE>
+&lt;infile     - redirect stdin - input taken from "infile"
+&gt;outfile    - redirect stdout - output put into file "outfile"
+&gt;&gt;outfile   - redirect stdout - same as ">" but the output is appended to file
+&gt;&errfile   - redirect stderr - error output is put into "errfile"
+&gt;&gt;&errfile  - redirect stderr - error output is appended to file "errfile"
+</PRE>
+
+<P>Do not put a space between the redirection symbol(s) and the file name.
+
+<H3>2.2. PATHNAMES</H3>
+
+<P>Whenever you specify a file, you use a "pathname".  Pathnames have the
+following optional parts:
+
+<PRE>
+[device:][ramlink-directory:][filename]
+</PRE>
+
+<P>Device names are set by the user in the configuration file, but the
+factory defaults are:
+
+<PRE>
+"a:"  - Commodore disk device #8 - input/output
+"b:"  - Commodore disk device #9 - for if you have >1 drive
+....  - Commodore disk devices #10 to #16
+"j:"  - Commodore disk device #17 - a disk drive
+"k:"  - Custom device driver: the keyboard (or screen)
+"m:"  - Custom device driver: Ramdisk
+"n:"  - Custom device driver: "null" device
+"p:"  - Commodore device #4 - the printer, with SecAddr 7 - output only
+"q:"  - Commodore device #4 - the printer, with SecAddr 5 - transparent mode
+"s:"  - Custom device driver: the screen (or keyboard)
+"u:"  - Custom device driver: user-port inter-machine network/par-print cable
+"x:"  - Custom device driver: modem ("to the eXternal world") (SwiftLink-232)
+"z:"  - Custom device driver: Ramdisk - intended for storing executables
+".:"  - the "current" disk device
+</PRE>
+
+<P>CMD RAMLink (or CMD HardDrive) directory names have the following formats:
+
+<PRE>
+//dir/:            - a subdirectory of the root directory
+/dir/:             - a subdirectory of the current directory
+4//dir/dir/dir/:   - a sub-path of the root directory of partition #4
+/dir/dir/dir/:     - a sub-path of the current directory
+</PRE>
+
+<P>And filenames have the usual Commodore format of 1 to 16 characters.
+
+<P>Thus, the following are valid pathnames for files:
+
+<PRE>
+k:                   - the keyboard for input
+p:                   - the printer for output
+b:file1              - "file1" on disk device #9
+.:file1              - "file1" on the current disk device
+file1                - "file1" on the current disk device
+/dir1/:file1         - "file1" in the RamLink subdirectory "dir1", cur. device
+a://dir1/dir2/:file1 - "file1" in the RamLink subdir "//dir1/dir2", device #8
+</PRE>
+
+<P>And the following are valid pathnames for directories:
+
+<PRE>
+a:             - disk device #8 current directory
+.:             - current disk device's current directory      
+.://dir1/:     - "dir1" off the root directory of the current RamLink device
+/dir1/dir2/:   - subdirectory "/dir1/dir2" of the current RamLink device
+</PRE>
+
+<P>Note that a directory name always ends with a ":".
+
+<P>You may append a ",p" or ",s" or ",u" to a filename to specify whether a
+PRG, SEQ, or USR file should be accessed/created.  By default, ACE will
+create SEQ files.
+
+<P>BTW, to generate an EOF for keyboard input, simply press Control-D.  Only
+do this at the beginning of a blank line.
+
+<H3>2.3. COMMAND-SHELL ARGUMENTS</H3>
+
+<P>Arguments that contain spaces must be put into quotes.  Multiple quoted
+strings can be placed side-by-side to produce a longer string.  The
+following are examples of valid command-shell arguments:
+
+<PRE>
+hello                                  -  hello
+'hello'                                -  hello
+"hello there"                          -  hello there
+'hello there'                          -  hello there
+'she said, "how'"'s that"'"'' to me.'  -  she said, "how's that" to me.
+</PRE>
+
+<P>Command shell arguments are separated by spaces or tab characters.
+
+<H3>2.4. EXTERNAL-COMMAND SEARCH PATH</H3>
+
+<P>The "path" command sets or displays the current search pathnames for
+external programs.  By default the paths to search are "z:" and "a:".  The
+path consists of multiple directory names to be checked, in order, for each
+binary executable or shell script that you give that does not have a
+pathname prefix.
+
+<H3>2.5. WILDCARDS</H3>
+
+<P>Unix-style wildcard expansion is supported.  When you enter an argument
+with an asterisk in the filename component of the pathname, the command
+shell will automatically expand that name into an argument for each file in
+the specified directory that matches that pattern.  The expanded arguments
+are then passed onto the command you are invoking as if you had typed them
+all in yourself.  For example:
+
+<PRE>
+ARGUMENT            EXPANSION
+--------            ---------
+*                   file1 prog1,p prog2,p
+ch*                 chess,p chinese_checkers,p
+*.bin               main.bin,p data.bin anagram.bin
+a*n                 anagram.bin an another_plan
+b:*.bin             b:main.bin,p b:data.bin b:anagram.bin
+c://games/:a*.bin   c://games/:acrobat.bin,p c://games/:acrodata.bin
+</PRE>
+
+<P>You'll note that program files are expanded to include a ",p".  If a
+pattern does not expand to anything, an error message is displayed and the
+shell command is not executed.  You'll have to cursor-up and change the
+command.  Your filename pattern can include only one asterisk (anywhere in
+the name).
+
+<P>Some example uses of wildcard expansion with the provided utilities
+follow:
+
+<PRE>
+cp b:* a:
+cp //games/c64/:chess*.bin somefile b://games/:
+wc *.asm *.c
+</PRE>
+<HR>
+
+<H2>3. SYSTEM CONFIGURATION</H2>
+
+<P>The program entitled "config.edit" is used for editing the system
+configuration.  The system will be configured according to the data in the
+file ".acerc" every time it starts up.  Note that ".acerc" is a loadable
+binary PRG file; it is not in text format and is not meant to be edited with
+a text editor.
+
+<P>The following data is included in the ".acerc" file:
+
+<PRE>
+OFF  SIZ  DESC
+---  ---  ----
+$00  128  device descriptors, 32 entries of four bytes each.
+          [For each entry, offsets: 0=device driver type, 1=device address,
+           2=secondary address, 3=flags.  Described further below.]
+$80    1  ramlink device number
+          [The kernel device number of your RAMLink.  The default RL device
+           number is 16.]
+$81    1  ramlink last logical bank allowed to use plus one (norm 255)
+          [For the RAMLink memory partition (next section), the maximum
+           number of 64K chunks that can be used for dynamic memory.]
+$82    4  real-time clock devices to check [4], 255=unused, 254=SmartWatch
+          [These are the kernel device numbers of CMD disk drive units that
+           have a built-in real-time clock to check for the current time.  If
+           the first entry fails, then the second will be tried, etc., until
+           the fourth entry is tried.  If all devices fail to return a time,
+           then the default date is used (next).  A value of 255 in an entry
+           means to try the next entry.  A value of 254 in an entry means to
+           try to read the time from the SmartWatch device plugged into
+           joystick port #1.  ACE uses the TOD clock of CIA#1 to keep time.
+           The date is stored in a regular memory field and is not rolled on
+           a 24-hour TOD clock wrap-around.]
+$86    1  screen saver activation time, in minutes (norm 10)
+          [The screen will go black when the screen saver is activated, after
+           a period where you have not pressed any key for the specified time,
+           until you press a key (including the any of the shift keys).  If
+           you press any character key, that key will appear in your input.
+           Normal processing will continue in the background, while the screen
+           saver is active, including printing to the screen.  This time is in
+           minutes.  A value of zero means to disable the screen saver.  The
+           screen saver is now active for the 40-column and 80-column
+           displays.]
+$87    1  RTS assertion-to-modem-acceptance delay period (norm. 40)
+          [This value gives a "fudge factor" for the SwiftLink driver for
+           controlling the hardware flow control.  Since Commodore computers
+           cannot do disk I/O and process SwiftLink interrupts at the same
+           time, it is necessary to turn interrupts off during I/O.  This
+           means that if more than one character shows up while interrupts
+           are disabled, then data will be lost.  The fudge factor is the
+           period that ACE delays between asserting the RTS flow-control
+           signal and disabling interrupts.  The value has no particular
+           meaning, just the number of times that a particular busy-waiting
+           loop in the SL driver is executed.  If you are losing occasional
+           characters during buffer capturing in the terminal program and
+           you have the modem configured properly for RTS/CTS flow control,
+           then you might try increasing this value to see if that solves
+           the problem.  With my USR 28.8 modem, a value of 10 works just
+           fine, but I've fudged the fudge to be safe here.]
+$90   12  default date and time YY:YY:MM:DD:HH:MM:SS:TT:TW:GG:gg:AA
+          [The default date to use if attempts to access the current time
+           from CMD disk devices/SmartWatch fail.  Format is 24-hour BCD.
+           All four digits of the year are given.  The "TT" field is where
+           you put the _hundredths_ of seconds (i.e., the tenths go into the
+           upper digit).  The "TW" field is where you put the day of the
+           week: 0 means Sunday, 1 means Monday, ..., 6 means Saturday, and
+           7 meand "unknown".  The "GG" field is where you put the number of
+           hours that your time zone is off from GMT.  Negative values are
+           entered by adding 80 to the number of hours (setting the high bit
+           of the BCD value).  For example, EDT (where I am) is off by -4
+           hours from GMT, so I would enter 84.  A value of 99 means
+           "unknown".  The "gg" field is where you enter the number of
+           minutes you are off from GMT, if you are not off by an even
+           number of hours.  This is always a positive value.  The "AA"
+           field is where you enter the accuracy of your clock with respect
+           to the actual real time.  These time-zone/accuracy fields are
+           used even if you pull the time from a CMD/SmartWatch device, so
+           set the accuracy according to where the time will usually
+           come from.  The accuracy will be interpreted as 2^AA in
+           milliseconds, so a value of 10 would mean +/- about a second.  A
+           value of 99 means "unknown".  Or, if you don't want to bother,
+           it's not really very important that you fill this timezone/
+           accuracy information in.  The factory-set value of this field
+           is 12am, Sunday, Jan 1, 1995., with unknown timezone and
+           accuracy.]
+$9C    4  String: name of your time zone: up to three chars plus null
+          [This is added just for officialness.  The default value is "XXX",
+           which means 'unknown'.]
+$A0    1  C128 bank1 start free page (norm $04)
+          [This field and the next define the pages of RAM1 that ACE is allowed
+           to use.  This must include at least one page.]
+$A1    1  C128 bank1 last free page plus one (norm $ff)
+$A2    1  C128 expanded internal memory type
+          [Not currently used.]
+$A3    1  C128 bank0 last allowed free page plus one (norm $ff)
+          [This is the highest page, plus one, on RAM0 that ACE is allowed to
+           use.  You can set this to protect a program that you wish to
+           attempt to use with ACE (good luck).  There is no minimum page that
+           ACE is allowed to use; it takes whatever it wants below $6000.]
+$A4    1  C64 soft-80 non-REU _minimum_ prescroll amount (norm 5)
+          [This will make it so that each "write" system call that prints data
+           to the screen that causes the screen to scroll will make the screen
+           scroll by at the given number of lines, even if there isn't enough
+           data to fill the scrolled-up number of lines.  This makes the
+           scrolling action a little uglier but N times more efficient for
+           programs that print data one line at a time, like "ls".]
+$A5    1  C128 last internal bank allowed to use above 2, plus one (norm 8)
+          [For expanded internal memory (a la TwinCities-128), this sets the
+           high limit on the banks that ACE is allowed to use.  A value of 2
+           means that ACE is not allowed to use it at all.  There is no low
+           limit on this because it caused too many programming problems.]
+$A6    1  C128 first REU bank allowed to use (norm 0)
+          [This and the next field define the minimum and maximum (plus one)
+           REU bank numbers that ACE is allowed to use.  I included a minumum
+           because of pleas about Zed having a minimum.  If you set both min
+           and max to $00, then ACE will leave the REU memory alone.
+           Otherwise, ACE will auto-detect how much you have and will make use
+           of as much REU memory as it can (note the default max is 255).]
+$A7    1  C128 last REU bank allowed to use plus one (norm 255)
+$A8    1  C128 top page of TPA (stack) (norm $c0)
+          [This defines that page (plus one) of the top of the application
+           program area (TPA).  The bottom is $6000, so a top of $C000 gives
+           apps 24K to play around in.  $C0 is the maximum value this field
+           can have, since the Commodore Kernal must (for this release) stay
+           in context whenever ACE is in use.  The top of this space is also
+           used as the "argument stack" for applications.]
+$A9    1  C128 VDC default number of rows (norm 25)
+          [This option selects the number of rows to display on the VDC screen
+           whenever ACE starts up or whenever a user program (like "eighty")
+           says to use the default number of display rows.]
+$AA    1  C128 VDC number of Kbytes of video RAM (norm 16)
+          [What it says.  Valid values for this option are 16 and 64.  There
+           will be no problem if your machine really has 64K but you only say
+           it has 16K.]
+$AB    1  C64 soft-80 screen maximum prescroll for REU-supported scrolling
+          [The maximum number of lines to "prescroll" the screen if your
+           program makes the "write" system call with multiple lines worth of
+           data to display onto the screen.  The cursor will always end up on
+           the bottom line of the display.  This option makes the scrolling
+           a bit jumpier but much more efficient.  This option is normally
+           set to 99, which really means the number of lines on the screen.]
+$AC    1  C128 80-col screen maximum prescroll
+          [The maximum number of lines to "prescroll" the screen.  The
+           factory-set default is 99, which really means the number of lines
+           on the screen.]
+$AD    1  C128 40-col screen maximum prescroll
+          [The maximum number of lines to "prescroll" the screen.  The
+           factory-set default is 99, which really means the number of lines
+           on the screen.]
+$AE    1  C64 soft-80 screen maximum prescroll for software scrolling
+          [The maximum number of lines to "prescroll" the screen.  The
+           factory-set default is 99, which really means the number of lines
+           on the screen.]
+$AF    1  C64 40-col screen maximum prescroll
+          [The maximum number of lines to "prescroll" the screen.  The
+           factory-set default is 99, which really means the number of lines
+           on the screen.]
+$B0    8  C128 80-col screen color palette: table of eight RGBI codes.
+          [This table gives the palette of colors to be used by C128 80-col
+           applications.  The meanings of the values stored at the offsets
+           are: 0=char, 1=cursor, 2=status, 3=separator, 4=highlight, 5=alert,
+           6=border, 7=screen.  The char, border, and screen colors are used
+           when the screen driver is initialized.  The border value for the
+           80-col screen is currently ignored.  Note that RGBI codes are used,
+           even for the VIC chip (for consistency).  The factory defaults for
+           char, screen, and border are light grey on black for 80 and light
+           green on dark grey with a medium grey border for the 40 (perhaps a
+           bit icky).  The other values are chosen accordingly.  The palettes
+           for the other displays have the same structure as this one.]
+$B8    8  C128 40-col color palette
+$C0    1  C64 soft-80 enable mask (norm %10100000)
+          [The 128-bit allows the soft-80 screen to be used.  Allowing the
+           soft-80 screen costs 12K of RAM0 memory on the C64.  This software-
+           implemented bitmap 80-column screen is supported only on the C64.
+           On a C128, use the real 80-column screen.  If the soft-80 screen is
+           not allowed, then the 12K of memory is made available for far
+           memory use (e.g., for ramdisks).  The 64-bit specifies that the
+           soft-80 screen is to be entered by default when ACE starts up,
+           rather than the 40-col screen.  You can switch between the two
+           screens by using the "forty" and "eighty" programs.  The 32-bit
+           specifies that the REU is to be used to assist in scrolling the
+           bitmap screen if an REU is present.  The cost of doing this is 7.5K
+           of REU memory.  The benefit is that the screen will scroll several
+           times faster than it will by just using the main processor, which
+           is used otherwise.]
+$C1    1  C64 last allowed page free plus one (norm $ff)
+          [This gives the top page, plus one, that ACE is allowed to use on
+           the 64.  Don't set this lower than the top of the TPA area.]
+$C2    1  C64 first REU bank allowed to use (norm $00)
+          [Like the C128 settings, you can set the usage for the REU memory.]
+$C3    1  C64 last REU bank allowed to use (norm $ff)
+$C4    1  C64 expanded internal memory type
+          [Not currently supported.]
+$C5    1  C64 end expanded internal memory banks plus one (norm $04)
+          [This field is currently ignored.]
+$C6    1  C64 top page of TPA (stack) (norm $a3)
+          [Top of the TPA for the 64.  You can set this between $61 and $d0,
+           but be sure not to collide with the stuff in high memory (see the
+           memory map earlier in this document).  I set the default here
+           lower than it needs to be so that a stock C64 with the soft-80
+           screen configured will have enough memory to load the command
+           shell onto the ramdisk.  If you have expanded memory, then you
+           should set this to $c0 to get maximum application performance
+           (from bigger data buffers).]
+$C7    1  Video type: NTSC (0) or PAL (1) (default: 0)
+$C8    1  key repeat delay (norm 20)
+          [The number of jiffies between when you press a key the first time
+           and when it starts repeating.]
+$C9    1  key repeat rate (norm 3)
+          [The number of jiffies between each repeat of a key while you are
+           holding it down.]
+$CA    1  console color enable default (norm $80)
+          [This is used to enable what is normally printed on the console
+           screen: characters, colors, and/or attributes.  All applications
+           that need to use colors will enable and restore the console
+           colors by themselves, so there is no need to have them enabled
+           all the time.  The default is to have only characters enabled
+           (not colors/attributes) because this allows it to operate twice
+           as quickly for operations like scrolling.]
+$CB    1  input line scrollback buffer line count (norm 5)
+          [The number of previous lines to save so that you can scroll back
+           through previous input lines in order to edit them.  Each line
+           of buffer space requires 256 bytes of far memory to store.
+           You MUST specify at least one line, or the system will crash in
+           all sorts of weird and wonderful ways (this is a bug, not a
+           feature).]
+$CC    1  controller port 1 device
+          [Not currently implemented.]
+$CD    1  controller port 2 device
+          [Not currently implemented.]
+$CE    1  C128 VDC maximum number of rows to display (norm 51)
+          [This setting gives the maximum number of rows that you want your
+           screen to display.  Some programs will ask for this maximum setting
+           (like "eighty 255").  You should set this to the maximum number of
+           (interlaced) lines that will fit on your display.  The value 51 is
+           the absolute maximum: the maximum that hardware will support.]
+$CF    1  C128 VDC "crossover" number of display rows (norm 28)
+          [This setting gives the number of VDC display rows which will be the
+           lowest setting that will be displayed in interlace mode.  The
+           interlace characters are approximately half as high as the regular
+           characters, so you will be able to see more on your screen.  The
+           factory-set default is probably good for a TV, but you can see
+           what works for you.  I have a 1902a monitor, and I can display
+           30 lines in regular characters (the maximum the hardware allows),
+           so I set the "crossover" value to 31 for myself.  Note: I don't
+           know how well these interlaced characters will work on non-NTSC
+           machines, or on non-1902a's, but you can try them for yourself.
+           If they don't work, then you can just set this option to be larger
+           than the maximum number of VDC rows to display (previous option),
+           and you'll never have to look at interlaced characters.]
+$D0    8  C64 80-col color palette
+          [For the bitmapped hi-res 80-col screen, which is not yet
+           implemented.]
+$D8    8  C64 40-col color palette
+$E0    1  The RAMLink-RAM partition number (norm. 31)
+          [See the Dynamic Memory section below.]
+$E1   13  String: The RAMLink-RAM parition name (norm. "rl-ram")
+$EE    1  The RAMLink-Indirect-REU partition number (norm. 30)
+$EF   17  String: RAMLink-Indirect-REU partition name (norm. "indirect-reu")
+$100  32  initial/home current directory string (default "a:")
+          [Immediately after booting and before calling the shell, the kernel
+           will do a change directory to the null-terminated string given
+           here.]
+$120  32  String: user-definable keymatrix file, or null (norm. "")
+$140  64  String: default executable search path (def. "z:", "a:", ".:")
+          [The paths to use to search for executable programs.  Each directory
+           name is a null-terminated string, and the list of paths is
+           terminated by an empty string.]
+$180  64  Configuration-file search path (def. "z:", "a:")
+          [Not currently used.]
+$1C0  32  Temporary-file directory name (def. ".:")
+          [The directory to use to store intermediate/temporary files.]
+$1E0  32  Name of character set to load when booting up (n."acechr-commodore")
+$200   -  SIZE
+</PRE>
+
+<P>The offsets from $00 to $7F contain 32 four-byte fields, which are used
+to define the devices in the system.  These fields will correspond to device
+names "@:", "A:", "B:", ..., "Z:", "[:", "\:", "]:", "^:", and "_:" (forgive
+the non-letter device names).  The four fields will be defined as follows:
+
+<PRE>
+0 device driver type (0=Kernal non-disk, 1=Kernal disk, 2=console, 3=null,
+  4=ramdisk, 5=userport, 6=swiftlink/turbo232, 255=empty)
+1 device primary address
+  (SwiftLink/Turbo232: I/O page of hardware: $de, $df, or $d7)
+2 device secondary address
+3 flags
+  (KernalDisk: $80 for a disk will means that it has a CMD Real-Time clock)
+  (UserPort: $00=use raw communication, $80=use packet-oriented communication,
+           $40=use PA2 raw comm (use this w/GEOcable), $C0=use PA2 packet comm)
+  (SwiftLink: below)
+</PRE>
+
+<P>For the SwiftLink or Turbo232 device (hereafter referred to as just
+"SwiftLink" unless noted), the "primary address" field contains the I/O page
+of the swiftlink chip (normally $de, but you can use $df or $d7 as well).
+The "secondary address" field is no longer used, as the receive buffer has
+been fixed at 256 bytes.
+
+<P>The "flags" field for the swiftlink should be set as follows.  The 128
+bit should be set to "0" if you want your modem parameters to be "8N1" or
+set to "1" if you want "7E1".  No other word-length/parity/stop-bits
+settings are supported.  The 64 bit should be set to "0" if you have a
+normal (double- speed) clock crystal (what CMD ships) or a Turbo232, or set
+to "1" if you have a hacked (standard-speed) clock crystal (1.8432 MHz).  An
+unhacked SwiftLink only goes up to 38.4kbps, and a hacked one will go at
+115.2kbps (but not 38.4kbps).  The Turbo232 supports all of the speeds up to
+230.4kbps.  There is no flag to indicate the Turbo232 since it is auto-
+detected.  The lower four bits should be set to select the baud rate,
+according to the following table.  The factory-set default is to 2400 baud
+with 8N1 and a non-hacked SwiftLink ($06).
+
+<PRE>
+bits   hex   dec      baud
+----   ---   ---    ------
+0000     0     0        50
+0001     1     1       110
+0010     2     2       134.5
+0011     3     3       300
+0100     4     4       600
+0101     5     5      1200
+0110     6     6      2400
+0111     7     7      4800
+1000     8     8      9600
+1001     9     9     19.2k
+1010     a    10     38.4k
+1011     b    11     57.6k
+1100     c    12    115.2k   (available on Fast C128 and SuperCPU)
+1101     d    13    230.4k   (available on SuperCPU only)
+1110     e    14    460.8k   (not implemented, but theoretically attainable)
+1111     f    15    921.6k   (    by the SuperCPU)
+</PRE>
+
+<P>If you don't want to waste memory on SwiftLink transmit and receive
+buffers in your configuration, then just remove the device entry for the
+swiftlink (normally device slot "x:") by setting the device type to 255
+(empty).  You don't have to worry about any memory-bleed problems with this
+device, since ACE will touch its I/O registers and intialize the SwiftLink
+chip only if you open a file to the device driver (i.e., use the "term"
+program).
+
+<P>To spare you the agony of editing this binary configuration manually, the
+BASIC program "config.edit" can be used instead.  Run it from BASIC, not
+from inside of ACE.  In fact, you should run this before running ACE the
+first time to set up the configuration.
+
+<P>The program provides a full-screen interface.  Move the cursor among the
+fields on each page and among the pages to set the values.  All values are
+in decimal (except the strings).  Then save the new configuration, exit, and
+run ACE.  If you screw up the new ".acerc", the previous one will be
+available in ".acerc.bak".
+
+<HR>
+<H2>4. DYNAMIC MEMORY</H2>
+
+<P>After you have configured ACE for your system, if you have a RAMLink, you
+will have to configure it for ACE if you want to use RAMLink RAM or indirect
+REU access.  The way that ACE detects these types of memory is via the
+RL-DOS partition table.  For RAMLink RAM, ACE will check for partition
+number 31 being a Foreign Mode (Direct Access) partition with the name
+"rl-ram".  (You can change the partition number/name in the configuration if
+you wish).  If it is, then ACE will get the information for that partition
+to determine the size and start address (in RL memory).  It will then check
+the limit for usage of RL-RAM in the ".acerc" file, and adjust the size it
+can use accordingly, before initializing the memory.  To set up this
+partition on your RAMLink in the first place, refer to your RAMLink
+documentation and use the tools program provided with it.
+
+<P>Using REU (Ram Expansion Unit) memory with ACE is pretty easy; you just
+make sure it is plugged into the computer when ACE is started.  ACE will
+auto-detect the size of the REU and then check the configuration for
+limitiations on REU usage.
+
+<P>If you have your REU plugged into your RAMLink in the RAM port (rather
+than the pass-through port), and you have the Normal/Direct switch thrown to
+the Normal position, then your machine cannot access REU memory in the usual
+way.  The only way to access it is to go through the RAMLink.  ACE will look
+for partition number 30 being Direct Access and named "indirect-reu" for
+this purpose.  (You can change this partition number/name in the
+configuration).  If your Normal/Direct switch is in the Direct position,
+then ACE will use the REU directly and will ignore the "indirect-reu"
+partition.  Do not change the position of the Normal/Direct switch while ACE
+is in action.
+
+<P>The tricky part here is in configuring your RAMLink.  You have to make
+sure that the memory allocated to the "indirect-reu" partiton is the memory
+of the REU.  RAMLink memory starts from $000000 and goes up to $FFFFFF.  REU
+memory will be at the very front of this memory (from address $000000), and
+the internal RAMLink memory will follow immediately after this.  For
+example, if I had a 512K REU and an 8 Meg RAMLink, my REU memory would cover
+RL addresses $000000-$07FFFF, and my internal RL memory would cover RL
+addresses $080000-$87FFFF.  When partitioning the device, partitions are
+assigned memory from lower addresses to higher addresses.  So, starting with
+an empty RL (no partitions), you must create the "indirect-reu" partition
+first, followed by any RL-DOS partitions and the "rl-ram" partition.  You
+must also make sure that the "indirect-reu" partition is the same size as
+your REU.  512K is 2048 blocks.  A note for deleting RL partitions: delete
+the ones that were last allocated first.
+
+<P>You have the option of installing or not installing either of these
+partitions.  If either is missing, ACE will simply work without it.  You'll
+want to be careful about throwing the Direct switch if you don't have your
+REU "protected" with an "indirect-reu" partition.  (With other REU
+applications also).
+
+<P>The various types of memory give the following performance under ACE:
+
+<PRE>
+type            bandwidth   latency
+-------------   ---------   -------
+REU             1,007,641      65.8
+REU thru RL     1,007,641      77.8
+RAMLink           105,792     199.2
+RL with REU       372,827     319.8
+internal RAM0     120,181      44.2
+internal RAM1      80,283      56.3
+</PRE>
+
+<P>The bandwidth is in bytes/sec and the latency is in slow ticks
+(~microseconds).  To determine how much time it will take to perform a
+specific request, take the number of bytes you want to transfer and divide
+it by the bandwidth, multiply the result by 1,022,727 (NTSC) and add the
+latency.  This will give you the transfer time in slow ticks.
+
+<P>For the types: "REU" is the REU being accessed directly and "REU thru RL"
+is the REU being accessed through a RAMLink: the REU must be plugged into
+the RAM port of the RL and the Normal/Direct switch must be in Normal
+position and the "indirect-reu" partition must be set up.  "RAMLink" is the
+RL partition "rl-ram" being accessed without REU assistance and "RL with
+REU" is the RL partition "rl-ram" being accessed when the assistance of an
+REU; the REU must be plugged into the RAM port and the Normal/Direct switch
+can be in either position.
+
+<P>For internal memory, the 64 has only one 64K internal bank, whereas your
+128 can have either 2, 4, or 8 (128K, 256K, or 512K).  The internal 128
+memory above 128K is accessed according to the articles in TwinCities-128
+Magazine.
+
+<P>When ACE starts, it determines the size of internal and REU memory by
+writing special values in the same locations of each bank and looking for
+readback failures or wrap-arounds.  However, after testing a bank, the
+original contents of the test locations are restored.  So, the testing
+process is completely non-destructive.
+
+<HR>
+<H2>5. DEVICES</H2>
+
+<H3>5.1. COMMODORE CHARACTER DEVICES</H3>
+
+These are regular Commodore character-oriented devices, which really only
+includes the printer right now.  The standard Kernal calls are made for
+all I/O.  These devices will behave the same way they always have.
+
+<H3>5.2. DISK DEVICES</H3>
+
+<H4>5.2.1. COMMODORE DISK DEVICES</H4>
+
+<P>Regular Commodore disk units are accessed in the same way as character-
+oriented Commodore devices, except that disk devices also support special
+operations such as directory listings.  The standard Kernal calls are used
+and so are the standard Commodore-DOS incantations for operations such as
+deleting (scratching) a file.  You can use the "dos" command of the command
+shell to send special Commodore-DOS commands directly to these devices.
+
+<H4>5.2.2. CMD DISK DEVICES</H4>
+
+<P>For CMD disk devices, support has been added to the kernel to request a
+"long-form" directory listing, including the date and time of last
+modification of all files.  This allows ACE to pass this information onto
+application programs that request a directory listing from the CMD device.
+Special support is also included for interpreting directory and pathnames.
+The rest of accessing CMD disk devices is handled exactly the same as for
+regular Commodore disk devices.
+
+<H4>5.2.2. RAMDISK DEVICE</H4>
+
+<P>The Ramdisk, as currently implemented, has one major restriction: flat
+filenames.  I.e., subdirectories are not currently supported.  To make up
+for this deficiency, you can have as many ramdisks active in the system as
+you like.  Setting a device to be a ramdisk in the system configuration is
+very easy: just change the device type code to the ramdisk type (code 4).
+When the system initializes, the kernel will scan the device configuration
+and initialize every ramdisk that you specify.  Each initialized empty
+ramdisk costs 512 bytes of far memory storage.
+
+<P>All of the standard disk device operations are supported for ramdisks,
+except, of course for "mkdir" and "rmdir", since subdirectories are not
+implemented.  The operations include: open for read/write/append, read,
+write, binary-load (for loading programs), remove, rename, directory open &
+read, change directory (to device), "devinfo", and "isdir" (see the
+ACE-128/64 Programmer's Reference Guide for further descriptions of these
+operations).
+
+<P>The factory-default configuration for ramdisks is to have two of them:
+devices "m:" and "z:".  The intention is that you will use device "z:" for
+storing your often-used programs and "m:" for your general storage.  You can
+store executables on a ramdisk and they will load very quickly.  For this
+reason, the factory-default executable search path is "z:,a:", meaning that
+device "z:" will be checked before device "a:".
+
+<P>To get good use out of the ramdisks, it is recommended that if you have a
+64 then you also have an REU or some other memory expander.  Without any
+memory expansion, if you have disabled the soft-80 screen you will have 16K
+of far memory for storing ramdisk data and if the soft-80 screen is enabled,
+you will only have 6K.  With an REU, you can use all of the REU memory for a
+ramdisk if you wish.  On an unexpanded 128 you will have 70K or so for
+ramdisks.  Note that because of the "far memory" organization of ACE, the
+far memory can be used to store ramdisk data and any other type of far
+memory storage.  Memory utilization is dynamic so you don't have to reserve
+large chunks of far memory exclusively for a particular purpose.
+
+<P>As advertised at the top of this document, the ramdisk driver is capable
+of delivering a peak reading speed of about 1 megabyte per second.  This is
+for reading a big file that was written to the ramdisk in large chunks,
+where the file is stored completely in REU memory.  For a similar file
+stored completely in RAMLink memory, the reading speed will be around
+56K/sec.  The writing speed of files will be approximately the same as for
+reading files, because of the way the data is organized: the limiting factor
+is the data transfer speed rather than system overhead.  The above figures
+are for a Fast-mode C128.  You should get comparable REU performace from
+Slow-mode or a 64 and about half the performance in Slow mode from a
+RAMLink.
+
+<P>I don't want to go into too many details, but to get such high
+performance, the ramdisk driver uses variable-sized disk blocks.  Each block
+can be between 256 bytes and 64K in size and includes 6 bytes of control
+information.  When you perform a write operation, the kernel will write the
+data out in the largest blocks possible without wasting space.  This way,
+when the data is read back in using a large "read" operation, very little
+control overhead is needed and the data can be transferred to internal
+memory in large chunks, and the aggregrated per-byte accessing cost is
+minimized, almost to the raw hardware-accessing speed.
+
+<P>Future expansion possibilites for this device include implementing
+subdirectories and implementing new types of memory which retain their
+contents between runs of ACE (but not power interruptions) so that you can
+have a "permanent" ramdisk similar to the way that RAMLink partitions work.
+As it is now, all ramdisks are erased when the system starts, so you have to
+copy necessary files to the ramdisks every time you reboot.
+
+<H3>5.3. SCREEN</H3>
+
+<H4>5.3.1. NORMAL SCREENS</H4>
+
+<P>The screen has a custom device driver for the 40-column (VIC) screen of
+both the C128 and C64 and the 80-column (VDC) screen of the C128.  The
+bitmap-implemented soft-80-column screen for the 64 is described in the
+next section.  Because of the way that the system has been designed, new
+screen drivers just easily slip into place (well, maybe it's not quite that
+easy...).
+
+<P>The custom screen driver includes support for the basic text-output
+operation, as well as special full-screen accessing calls to allow for the
+simplified and standard implementation of full-screen programs, such as a
+text editor.  Such a program would be able to work on the 40-column C64
+screen, the Soft-80 C64 screen, as well as the 80-column C128 screen, with
+no modification.  The Commodore Kernal includes very little support for
+full-screen applications (only numerous control character codes).
+
+<P>For the regular output, only the screen characters and not the colors are
+used (normally), which allows scrolling to be twice as fast.  Outputing
+characters is also faster because fewer control characters are supported, no
+translations between PETSCII and screen codes needs to take place, and
+operations are optimized for speed (rather than ROM size).  The display
+character set has been rearranged to correspond to the PETSCII character
+codes, except for the "Commodore" characters.  The graphics characters have
+been re-thought for applications.  The screen driver also includes basic
+support for user-windows, which will be taken advantage of in future
+applications.
+
+<P>A prescrolling feature has been implemented to cut down on the number of
+times the screen has to be scrolled in displaying text, to increase the
+display speed.
+
+<H4>5.3.2. BITMAPPED 80-COLUMN SCREEN FOR THE 64</H4>
+
+<P>This screen is implemented with a VIC bitmap and 4x8-pixel characters.
+The screen maps into memory under the Commodore Kernal ROM.  The attribute
+bits of color values act as background color for color cells, and the color
+cells cover two character spaces, because of the VIC hardware.
+
+<P>Er, I should mention about the character set.  The one I have I came up
+with for a VIC-20 40-col screen program a long time ago but it may not be
+ideal for the smaller pixels of the 64.  I have selected the default screen
+colors (black on gray) to display the characters clearly.  It works best if
+you turn the brightness up on your monitor, to cut down on the pixel
+distortion of the 64 display.  If you come up with a better character set or
+screen color combination, please let me know.  The format of the character
+set is explained in the "aceNN-tech.doc" document.
+
+<H4>5.3.3. GRAPHICS SCREENS</H4>
+
+<P>The kernel has been extended to include basic support for 320*200
+monochrome graphics on the 64 and 640*200 and 640*491 (64K only) using the
+VDC display of the 128.  The 320*200 and 640*491 displays have a pixel
+aspect of 1-to-1 and the 640*200 display has a pixel aspect ratio of 2-to-1.
+The aspect ratio is made available to application programs so they can
+correct it, if they so choose.  The basic support the kernel provides
+includes only getting in and out of graphics mode, filling the screen with a
+given byte value, and loading the bytes of a display line.  A number of
+extensions are possible, but I'd like to keep it simple to keep down the
+kernel size.
+
+<H3>5.4. KEYBOARD</H3>
+
+<P>A custom keyboard scanner has been added also.  It supports a three-key
+rollover as discussed in C= Hacking Net Magazine Issue #6.  The key
+matricies will be extended to include a number of standard control
+characters for things like "page up," etc.  Key scanning has been completely
+taken over to implement the three-key rollover, and to avoid interference
+with the joystick in port #1.
+
+<P>There are a few new keyboard controls.  To temporarily pause a listing
+going to the screen, press the CONTROL key.  Output will resume when you
+release the key.  For the C128, the NO SCROLL key is supported in the normal
+way.  On the 64, to achieve the same effect, press the RUN/STOP key while
+holding down the CONTROL key to pause output until you explicitly re-enable
+it.  To do this, just press NO SCROLL (128) or CONTROL-STOP (64) again.  On
+the 128, the CAPS key is supported in the normal way (with CAPS-Q fixed),
+and to activate caps lock mode on the 64, press COMMODORE-STOP, and press it
+again to release caps lock mode.  The key delay and repeat rates are not
+user- definable right now, but they will be.  Also, function keys will be
+application-definable (where the command shell can be considered an
+application).  Something that you may find odd is that the cursor color can
+be different from the character color.  Deal with it.
+
+<P>Full input line editing is supported.  Lines may be up to 248 characters
+long, including the carriage return.  You can delete the character before
+the cursor by typing DEL.  You can use the cursor LEFT and RIGHT keys to
+move the cursor on the current input line and any characters you type will
+be inserted before the character that the cursor is on.  CO-LEFT and
+CO-RIGHT (on the 128 with the upper cursor keys) move the cursor to the
+beginning and end of the current line.  CT-A and CT-E do the same thing
+(after Unix).  When you wish to generate an EOF (end-of-file) signal from
+the keyboard, press CONTROL-D.  This will only work on an empty line;
+otherwise, you will get the CT-D character.
+
+<P>If you wish to edit and re-enter a previous line, press the cursor-UP key
+when the system prompts you for an input line.  This will recall the
+previous line.  You can press cursor-UP and DOWN to scan through all of the
+scroll buffer lines you have allocated in the configuration.  Buffering each
+line will cost you 256 bytes of far memory.
+
+<P>When you have selected a previous input line, you can edit it or re-enter
+it just like normal.  The instant that you change or enter the line, it
+becomes the current line.  Otherwise, if you don't change a previous line,
+then you can scroll back down to the current line you were working on
+before.  This is useful for checking some item on a previous line and then
+continuing with the current line.  When you scroll back to the end of the
+history buffer, the bell will ring if you try to scroll back any farther.
+Blank lines are not entered in the scrollback buffer.  Also, all lines
+rather than just the command lines are saved (although I may reconsider this
+later).
+
+<P>Many applications will make use of a number of key combinations, so here
+is a recommended set of control codes and how they should normally be
+interpreted by application programs.  Note that the keys for "@" to "_",
+used in association with shifting keys, are
+"@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_".  "CT" means Control, "SH" means Shift,
+"AL" means Alternate, and "CO" means Commodore.  On the C64, Alternate is
+obtained by holding down the Commodore and Control keys simultaneously, and
+"CS" below means to hold down the Commodore and Shift keys simultaneously.
+The "CS" combination is used to make the functions of keys only provided on
+the C128's extended keyboard available on the C64.
+
+<PRE>
+CODE(s)   C128 KEY(s)    C64 KEY(s)     DESCRIPTION
+-------   ------------   ------------   -----------
+$5c       BritishPound   BritishPound   (\) the backslash character
+$5e       UpArrow        UpArrow        (^) the carret character
+$5f       BackArrow      BackArrow      (_) the underscore character
+$c0       SH-*           SH-*           (`) the back-quote character
+$db       SH-+           SH-+           ({) the left-curly-brace character
+$dc       SH-BritPound   SH-BritPound   (|) the vertical-bar character
+$de       SH-- (minus)   SH-- (minus)   (}) the right-curly-brace character
+$df       SH-BackArrow   SH-BackArrow   the house character (DEL in ASCII)
+
+CODE(s)   C128 KEY(s)    C64 KEY(s)     DESCRIPTION
+-------   ------------   ------------   -----------
+$20-$3f   SPACE to "?"   SPACE to "?"   Regular numbers and punctuation
+$40-$5f   "@" to "_"     "@" to "_"     Regular lowercase letters
+$60-$7f   AL-@ to AL-_   <undecided>    Alternate keys
+$a0-$bf   CO-@ to CO-_   CO-@ to CO-_   Commodore keys
+$c0-$df   "`" to HOUSE   "`" to HOUSE   Regular uppercase letters
+$e0-$ef   CT-@ to CT-_   CT-@ to CT-_   Control keys
+
+CODE(s)   C128 KEY(s)    C64 KEY(s)     DESCRIPTION
+-------   ------------   ------------   -----------
+$00       <none>         <none>         <cannot be generated-I may change this>
+$01       CT-RETURN      CT-RETURN      End of file
+$02       SH-TAB         CS-R           Backtab
+$03       STOP           STOP           Stop some operations
+$04       HELP           CS-H           Context-sensitive help
+$05       CT-2           CT-2           White
+$06       SH-LEFT        CS-B           Word left
+$07       SH-LINEFEED    CS-P           Menu exit
+$08       CO-DEL         CO-DEL         Rubout character under cursor
+$09       TAB            CS-T           Tab
+$0a       LINEFEED       CS-L           Menu
+$0b       SH-RIGHT       CS-N           Word right
+$0c       CO-UP          CS-W           Goto top of document
+$0d       RETURN         RETURN         Return
+$0e       SH-ESCAPE      CS-D           Window control
+$0f       CO-DOWN        CS-Z           Goto bottom of document
+$10       CO-LEFT        CS-A           Goto beginning of line
+$11       DOWN           DOWN           Cursor down
+$12       CT-9           CT-9           Rvs
+$13       HOME           HOME           Home
+$14       DEL            DEL            Backspace
+$15       CO-RIGHT       CS-S           Goto end of line
+$16       CT-UP          CS-I           Page up
+$17       CT-DOWN        CS-M           Page down
+$18       CT-TAB         CS-Y           Tab set
+$19       CT-LEFT        CS-J           Page left
+$1a       CT-RIGHT       CS-K           Page right
+$1b       ESCAPE         CS-E           Escape
+$1c       CT-3           CT-3           Red
+$1d       RIGHT          RIGHT          Cursor right
+$1e       CT-6           CT-6           Green
+$1f       CT-7           CT-7           Blue
+
+CODE(s)   C128 KEY(s)    C64 KEY(s)     DESCRIPTION
+-------   ------------   ------------   -----------
+$80       CT-F1          CT-F1          Function key 9
+$81       CO-1           CO-1           Orange/Purple(?)
+$82       CT-F3          CT-F3          Function key 10
+$83       SH-STOP        SH-STOP        Run
+$84       SH-HELP        CS-G           Context-insensitive help
+$85       F1             F1             Function key 1
+$86       F3             F3             Function key 3
+$87       F5             F5             Function key 5
+$88       F7             F7             Function key 7
+$89       SH-F1          SH-F1          Function key 2
+$8a       SH-F3          SH-F3          Function key 4
+$8b       SH-F5          SH-F5          Function key 6
+$8c       SH-F7          SH-F7          Function key 8
+$8d       SH-RETURN      SH-RETURN      <undecided>
+$8e       CT-F5          CT-F5          Function key 11
+$8f       CT-F7          CT-F7          Function key 12
+$90       CT-1           CT-1           Black
+$91       UP             UP             Cursor up
+$92       CT-0           CT-0           Rvs off
+$93       SH-HOME        SH-HOME        Clear screen
+$94       SH-DELETE      SH-DELETE      Insert one space
+$95       CO-2           CO-2           Brown
+$96       CO-3           CO-3           Light red
+$97       CO-4           CO-4           Dark gray
+$98       CO-5           CO-5           Medium gray/dark cyan(?)
+$99       CO-6           CO-6           Light green
+$9a       CO-7           CO-7           Light blue
+$9b       CO-8           CO-8           Light gray
+$9c       CT-5           CT-5           Magenta
+$9d       LEFT           LEFT           Cursor left
+$9e       CT-8           CT-8           Yellow
+$9f       CT-4           CT-4           Cyan
+</PRE>
+
+<P>For the Dvorak key matrix, the following combination of Dvorak and
+Commodore is used on the basic keyboard:
+
+<PRE>
+    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+    | _ | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 0 | + | - | \ |hom|del|
+    +---------------------------------------------------------------+
+    |ctrl | @ | , | . | P | Y | F | G | C | R | L | / | * | ^ |restr|
+    +---------------------------------------------------------------+
+    |stp|shl| A | O | E | U | I | D | H | T | N | S | ; | = | return|
+    +---------------------------------------------------------------+
+    | C=|shift| : | Q | J | K | X | B | M | W | V | Z |shift| v |-> |
+    +---+-----+---+---+---+---+---+---+---+---+---+---+-----+---+---+
+</PRE>
+
+<P>All of the keys are moved as a unit, so shifting a key will produce the
+same result as the corresponding key in the standard Commodore Qwerty
+layout.  The extended keys remain the same.  If you want to redefine the key
+matrix yourself, then look in the "acekey-dvorak.s" for more information.
+It is an ACE-assembler source file that encodes the translation tables.
+
+<H3>5.5 USER-PORT INTER-MACHINE NETWORK DEVICE</H3>
+
+<P>The device follows from what was outlined in issue #8 of C= Hacking net
+magazine.  It allows you to send bytes of data from one computer to another,
+which is all that any network, no matter how complicated, actually does.
+With this ability, you can write arbitrarily complex distributed
+applications.  Well, before we get too grand, the "network" is currently
+limited to only connecting two compters together.  Here is how the wiring
+goes if you want to make your own network cable:
+
+<PRE>
+Host-A  name/pin                                      pin/name  Host-B
+         GND (A)+------------------------------------+(A) GND
+        FLAG (B)+------------------------------------+(8) PC2 ***
+         PB0 (C)+------------------------------------+(C) PB0
+         PB1 (D)+------------------------------------+(D) PB1
+         PB2 (E)+------------------------------------+(E) PB2
+         PB3 (F)+------------------------------------+(F) PB3
+         PB4 (H)+------------------------------------+(H) PB4
+         PB5 (J)+------------------------------------+(J) PB5
+         PB6 (K)+------------------------------------+(K) PB6
+         PB7 (L)+------------------------------------+(L) PB7
+         PA2 (M)+------------------------------------+(M) PA2 (or use as PC2)
+         GND (N)+------------------------------------+(N) GND
+        CNT2 (6)+------------------------------------+(6) CNT2
+         SP2 (7)+------------------------------------+(7) SP2
+         PC2 (8)+------------------------------------+(B) FLAG ***
+</PRE>
+
+<P>Here is the Commodore 128/64 User Port when looking at the back of the
+unit:
+
+<PRE>
+                             111
+     (other)        123456789012    top          (edge of)
+     (ports)        ------------                 (machine)
+                    ABCDEFHJKLMN    bottom
+</PRE>
+
+<P>You will need two appropriate connectors and some 14-conductor ribbon
+cable to build the network.  One of my connectors is a 44-conductor
+connector of the type used with the VIC-20 expansion port that I sawed in
+half and the cable is some old junk ribbon cable that was lying around that
+I removed some of the conductors from.  Any old junk will do.  You're
+probably best off if your cable is less than two metres long (six feet).
+
+<P>There are two software protocols implemented for transmitting bytes over
+the network: Raw and Packet.  The Raw protocol just sends the raw bytes
+using only the hardware handshaking.  This should be suitable for use with
+parallel- port printers.  The Packet protocol writes three bytes of header
+information plus the given data for each "write" operation to the device.
+The header information consists of the value $E6, followed by the low byte
+of the number of data bytes to follow, followed by the high byte of the
+count, followed by the data bytes themselves.  This protocol allows the
+other end to know what the packet boundaries are, and packet boundaries are
+needed for interactive interprocess communication, such as with RPCs (Remote
+Procedure Calls).   The implemented protocol also sends a packet with zero
+user-data bytes out when you use the "close" system call on the user-port
+device, so the Packet protocol is also useful for transferring files from
+one machine to anotherA.
+
+<P>But, since the network is inherently half-duplex (data can only flow in
+one direction at a time), you must be very careful about coordinating things
+so that you always have one transmitter and one receiver whenever you are
+transferring data.  If both hosts try to receive or both try to transmit at
+the same time, they will both deadlock forever (or until you reset them).
+
+<P>As an example, if you wanted to transfer a file over the network, you
+would enter the following on the receiving computer:
+
+<PRE>
+cat u: &gt;file
+</PRE>
+
+<P>and the following on the transmitting computer:
+
+<PRE>
+cat file &gt;u:
+</PRE>
+
+<P>The device operates much like a Unix "pipe".  You can also use the "cp"
+or "bcode" or whatever and you the order in which you start the transmitter/
+receiver doesn't matter.  The packet size on the network is variable and is
+defined by the size of write call that the transmitter performs a write
+operation.
+
+<P>Flow-control handshaking is performed for each byte sent, so the writer
+will be delayed in the write system call until the receiver has received
+every last byte of the packet by performing appropriate read operations.
+This means that the writer will operate synchronously with the reader if the
+receive buffer (read size) is smaller than the transmit buffer (write size)
+and that the writer will operate asynchronously (*concurrently*) with the
+receiver if the receive buffer is larger than or equal in size to the
+transmit buffer.  Concurrency is good.  Also, reads will sometimes return
+"short blocks", blocks with fewer bytes than the read request specified.
+This is to allow the device to be truly packet-oriented, which can allow
+client/server-type interactions over the half-duplex communication line.
+
+<P>The maximum transfer rate is currently around 40K/sec.  The maximum rate
+possible, if software were as efficient as possible, would be about 80K/sec
+with two Fast-mode C128s.
+
+<H3>5.6. SWIFTLINK-232 DEVICE</H3>
+
+<P>This device driver supports Creative Micro Design's SwiftLink-232 and
+Turbo-232 cartridges, which are based on the 6551 ACIA chip.  The way to
+configure the operation of this device (receive-buffer size, baud rate,
+word-length/parity/ stop-bits) was discussed in the System Configuration
+section.  The device will work only from any page-aligned I/O slot where
+$DE00 is the default.
+
+<P>Here are a couple of notes about the device driver.  It will operate
+flawlessly at 115.2kbps, 57.6kbps, and 230.4kbps on the C128, C64, and
+SuperCPU-64 respectively.  At these speeds, the machine has only about 177
+clock cycles (NTSC) per character received.  The device driver also
+implements hardware flow control out of practical necessity.  If you are
+operating at 9600 baud or higher, then it is likely that (a) whatever you're
+connected to supports hardware flow control (HFC), and (b) that your
+application won't be able to keep up all of the time.  The HFC works
+flawlessly as far as I have tested.  Because of the immediacy of HFC, the
+device will assert HFC when there are fewer than 8 bytes free in the receive
+buffer (a small limit) and will release it where there are 64 or more bytes
+free in the receive buffer.
+
+<P>An unfortunate hardware restriction of the 6551 ACIA is that it cannot
+transmit data while the HFC is asserted.  This makes controlling transmit
+data more complicated but also makes it so that the RTS/CTS signals
+simultaneously work according to their standard definitions and also to
+their newer flow-control definitions.  This is okay, since newer high-speed
+modems usually interpret these signals in the flow-control way and older
+modems are likely to operate at a baud rate where flow control is not
+needed.  Note that if flow control is ignored by your modem and the receive
+buffer overflows, then you WILL lose characters.  The SL driver collects
+statistics about this (number of hardware overruns, number of
+software-buffer overflows, number of bytes sent, number of bytes received).
+
+<P>The SwiftLink driver does not use transmit interrupts.  This is because
+having both types of interrupts is an ugly problem and may be too much for
+the processor to keep up with.  Instead, the SL driver uses polled
+transmission.  In the context of a terminal program, this is normally no
+real problem, since normally only one or a few bytes are transmitted at a
+time (with each keystroke).  In the event that HFC is asserted when the
+driver goes to transmit a byte, it will put the byte into the transmit
+buffer and return without transmitting the byte.  This is because the system
+would deadlock if it waited for a transmit-ready signal, since it will never
+get one as long as HFC is asserted.  Control is returned to the user program
+to clear out the receive buffer so that HFC can be released and bytes can be
+transmitted.  When HFC is released by a "read" system call, the SL driver
+will transmit all buffered transmit characters in a polling loop before
+returning.  Currently, if the transmit buffer overflows, the overflow
+characters are simply dropped.  In the future, the "write" call will return
+with an error with information about how many characters were successfully
+buffered for future transmission, so that it can recover on its own.
+
+<H3>5.7. SMART-WATCH DEVICE</H3>
+
+<P>The "config" program will attempt to read the current time from the
+SmartWatch device you have plugged into port #1 if you set a "time-device"
+field in the system configuration to the special value of 254.  The code was
+donated by Randy Weems <Red Herring Corp.> (rweems@edge.ercnet.com) and has
+been integrated into the configuration program.  Randy says:
+
+<P>If you're wondering what a SmartWatch is...it's a cool little
+pass-through socket originally designed for PCs I think (and Apples) that
+gives you a battery backed clock in a transparent manner.  You remove a ROM,
+plug the SmartWatch into the ROM's socket and plug the ROM into the
+SmartWatch socket.  If you have a driver that reads from the ROM in just the
+right sequence, the SmartWatch kicks in and sends the date/time one bit at a
+time.  Of course, there's always the possibility that the ROM could
+accidentally be read in the sequence that triggers the SmartWatch, but it's
+extremely unlikely.
+
+<P>Anyway, I never could get it to work "properly" on my 128D (by plugging
+it into a ROM's socket), but I found plans for hooking it up to joystick
+port 1 and drivers for GEOS.  It doesn't interfere with the joystick port or
+keyboard at all.
+
+<HR>
+<H2>6. COMMANDS</H2>
+
+<P>The following subsections give the low down on all of the executable
+programs provided with ACE, including the system programs and external user
+programs.  For each command, a synopsis is given, followed by the
+description.
+
+<H3>6.1. BUILT-IN COMMANDS</H3>
+
+<P>These commands are built right into the command shell.
+
+<HR>
+<PRE>
+echo [arg ...]
+</PRE>
+
+<P>Print the given arguments to stdout, with a space between each and a
+carriage return at the end of the line.
+
+<HR>
+<PRE>
+clear
+cls
+</PRE>
+
+<P>Clear the screen.  "cls" is the MS-DOS name and "clear" is the Unix name.
+This command simply emits a "form-feed" character to stdout.
+
+<HR>
+<PRE>
+ls   [-help] [-l] [-c] [-f] [dirname ...]
+dir  [-help] [-l] [-c] [-f] [dirname ...]
+d    [-help] [-l] [-c] [-f] [dirname ...]
+clsl [-help] [-l] [-c] [-f] [dirname ...]
+</PRE>
+
+<P>Display a directory listing of the given directory or of the current
+directory if no "dirname" is given.  This command has so many variants
+because it is so useful.  "dir" clears the screen before giving a long-form
+directory listing.  "d" gives a long-form directory listing without clearing
+the screen.  "ls" gives a short-form directory listing without clearing the
+screen, and "clsl" gives a short-form listing after clearing the screen.
+
+<P>Short-form listings include only the filenames of the files in the
+directory, whereas long-form listings include directory name, file
+permissions, date and time of last modification, length (in blocks*254
+bytes), file type, and filename.  On 40-col displays, the date and time
+fields are omitted.
+
+<P>The "-help" flag will make the command prints its usage information, "-l"
+will request a long-form listing, "-c" will request that the screen be
+cleared first before showing the listing, and the "-f" flag will request
+that the number of files and the total size in bytes of all the files be
+displayed in addition to the number of bytes free on the device for a
+long-form listing (note that only files are included in the count and bytes
+data; directories are not).
+
+<HR>
+<PRE>
+cd [dirname]
+</PRE>
+
+<P>Change the current working device and directory to the given directory
+name.  If no directory name is given, change to the "home" (initial)
+directory.
+
+<HR>
+<PRE>
+cat [file ...]
+</PRE>
+
+<P>Display the contents of the named files to stdout.  If no files are
+named, then input is taken from stdin (normally the keyboard).
+
+<HR>
+<PRE>
+exit
+x
+</PRE>
+
+<P>Exit from the command shell.  EOF on stdin (normally Control-D from the
+keyboard) has the same effect.  If the current command shell is the initial
+one started by the system (process #2), then ACE will exit back to BASIC.
+Otherwise, the command shell will exit back to the program that invoked it.
+
+<HR>
+<PRE>
+dos command
+@   command
+</PRE>
+
+<P>Give a Commodore-DOS command to the current device (OPEN1,dv,15..).  Both
+"dos" and "@" are exactly synonymous.
+
+<HR>
+<PRE>
+path
+path dirname ...
+</PRE>
+
+<P>Display or set the path to search for searching for external programs.
+"path" alone on a command line displays the current search path, and "path"
+followed by arguments will set the search path to the following arguments.
+
+<HR>
+<PRE>
+sh [-vi] [scriptname]
+</PRE>
+
+<P>Invoke a sub-shell.  Currently, this is actually an external-command
+call.  If the "-v" flag (version/verbose) is used, then the version "banner"
+is printed when the shell starts, and "-i" (initialize) will cause the new
+shell to execute the ".ashrc" shell script before accepting commands from
+its regular input file.
+
+<P>If the "scriptname" argument is supplied, then input is taken from the named
+file; otherwise, input commands are taken from stdin.
+
+<HR>
+<H3>6.2. SYSTEM PROGRAMS</H3>
+
+<HR>
+<PRE>
+ace
+</PRE>
+
+<P>This is the main loader.  It determines whether it is running on a 128 or
+a 64 and then loads and runs either "ace128" or "ace64" below.
+
+<HR>
+<PRE>
+ace128
+ace64
+</PRE>
+
+<P>These are the kernel programs.
+
+<HR>
+<PRE>
+config
+</PRE>
+
+<P>The system configuration program.  This is not a user-executable program;
+it is loaded and executed while the system is bootstrapping.  This program
+loads the ".acerc", "ace-charset", and "ace-charset-4bit" files, initializes
+the dynamically allocated memory, and sets the date.
+
+<HR>
+<PRE>
+config.edit
+</PRE>
+
+<P>The configuration editor written in BASIC.  LOAD and RUN it directly from
+BASIC.  Full-screen interface.  Same program runs on either a 128 or 64.
+
+<HR>
+<H3>6.3. EXTERNAL PROGRAMS</H3>
+
+<HR>
+<PRE>
+cp [-f] file destfile
+cp [-f] file ... directory
+</PRE>
+
+<P>A file copier.  Operates like the Unix file-copier program.  If you give
+two filenames, will copy the first file to the second name.  If a number of
+file names are given and the last argument is a directory name is given,
+will copy all of the files, retaining their names, into the given directory.
+
+<P>If a file that you want to copy to already exists, then you will be
+prompted for whether you want to overwrite the file: yes, no, all, or quit.
+Answering Yes will overwrite the file, and continue onto the next file.
+Answering No will abort copying the current file and continue onto the next
+file.  Answering All will have the same action as Yes, except that it will
+never ask your permission again; it will always assume Yes.  Answering Quit
+will abort the entire copy operation without disturbing any more files.
+
+<P>If, on the other hand, you use the "-f" option (force), then the command
+will overwrite existing files without pestering you for permission.  Or, if
+the stdin file stream is not connected to the console, then the "force"
+option will be presumed.  I would really like to get a "-r" (recursive)
+option working.  Maybe in an "xcp" variant.
+
+<HR>
+<PRE>
+rm file ...
+</PRE>
+
+<P>File remover (scratcher).  All named files will be deleted.
+
+<HR>
+<PRE>
+mv oldfile1 newfile1 ... oldfileN newfileN
+</PRE>
+
+<P>File renamer.  For each pair of names, the old name will be changed to
+the new name.  If the new name already exists, then the program will report
+an error.  This uses the crufty Commodore rename DOS command, so don't even
+think about renaming a file that is not in the current directory or "moving"
+a file between directories.
+
+<HR>
+<PRE>
+mkdir flatDirName
+</PRE>
+
+<P>Create a new subdirectory in the current directory.  The given name must
+be "flat", i.e., it is just the name like "dirname", without any "/"s or
+":"s.
+
+<HR>
+<PRE>
+rmdir flatDirName
+</PRE>
+
+<P>Remove an existing empty subdirectory in the current directory.
+
+<HR>
+<PRE>
+wc file ...
+</PRE>
+
+<P>Word counter.  Counts the lines, words, and characters in a file.  To
+count lines, the program simply counts carriage returns (code 13 decimal).
+A word is any non-whitespace character(s) between whitespace characters.
+Whitespace is defined as the characters SPACE, TAB, and RETURN (codes 32, 9,
+and 13 decimal, respectively).  If multiple files are specified, totals will
+be reported.
+
+<HR>
+<PRE>
+grep [-[i][v]] [^]substr[$] file ...
+</PRE>
+
+<P>The "i" and "v" flags are optional.  "i" means to ignore the case of
+letters in comparisons and the "v" means to invert the search - display
+lines that do not match the pattern.
+
+<P>The substring may begin with "^" which means only to check for the string
+at the beginning of a line, and may end with "$" which means only to check
+for the string at the end of a line.  Both "^" and "$" may be used at the
+same time.  There is no escape character, so you'll have problems trying to
+seach for the two anchor characters in the files.
+
+<P>One or more files may be specified to be searched.  If more than one
+file, then the name of the file will preceed each line printed that matches.
+Output goes to stdout.  Some examples follow:
+
+<PRE>
+grep hello hello_world.c
+grep -v '^$' file1 >file1.noblank
+grep -i crAiG Hack*
+grep -iv 'the$' file2
+</PRE>
+
+<P>The first example simply searches for the string "hello".  The second
+example removes all blank lines from the input file.  The third example
+searches the Hack1, Hack2, Hack3, Hack4, and Hack5 files (for example) for
+the word "craig" which can be in any case (eg. "Craig" would match).  The
+fourth example displays all lines that do not end with the word "the" in any
+case (eg. the second line of this paragraph would be omitted).
+
+<P>Some limitations of the program are: only the first 2048 characters of a
+(really long) line will be considered, lines may not contain the character
+code $00, and the last line of the file must end with a RETURN (or it will
+be ignored).
+
+<HR>
+<PRE>
+tr [-i] [-fromset2toset] file ...
+</PRE>
+
+<P>Translate files from one character set to another.  Character sets
+supported are: Petscii, Ascii-CrLf (MS-DOS), Ascii-Lf (Unix), Ascii-Cr, and
+SpeedScript.  "fromset" and "toset" in the synopsis above may be any of: "p"
+(Petscii), "a" (Ascii-CrLf), "al" (Ascii-Lf), "ac" (Ascii-Cr), "s"
+(SpeedScript), "c" (Commodore == Petscii), "u" (Unix == Ascii-Lf), or "m"
+(MS-DOS == Ascii-CrLf).
+
+<P>The the character set specifiers are separated by the character "2"
+(meaning "translate to").  If the translation specification argument is
+missing, the default of translating from Ascii-CrLf to Petscii is used.
+Input is taken from the files and all output goes to stdout in order.
+
+<P>Example:
+
+<PRE>
+tr -s2u file1 >file1.unix
+</PRE>
+
+<P>Translate from SpeedScript format to Ascii-Lf (Unix) format the contents
+of "file1" and put into file "file1.unix".
+
+<P>The name "tr" is used (a Unix utility) because the functionality of this
+program will grow to include that of the Unix "tr" utilitiy.
+
+<P>The "-i" option means to do an "in-place" translation.  I.e., the
+original file will be overwritten with the translated data.  To achieve
+this, a temporary file is created in the temporary directory that is the
+size of the final file, and then removed.  Make sure that your temporary
+directory will have enough space to do the translations.
+
+<HR>
+<PRE>
+sort [-[i][v]] [+column] file ...
+</PRE>
+
+<P>Sort utility.  Currently uses a sucked-out insertion sort algorithm.
+Will be extended to use the "Approximation Sort" algorithm, which has
+between O(N) and O(N^2) performance (close to O(N) for random data).  Makes
+use of dynamically allocated memory to store large files internally.
+
+<P>The "i" and "v" flags are optional.  "i" means to ignore case of letter
+characters in comparisons to determine order.  The "v" flag means to inverse
+the order of sorting (put into descending order rather then the usual
+ascending order).  The +col field is optional, and if present, gives the
+character position of the start of the sorting key.  The default starting
+position is 1 (the beginning of the line).  A TAB character will be
+interpreted as any other character.
+
+<P>If multiple files are specified, they will all be merged together and
+then sorted as a group.  Sorted output goes to stdout.  If the program dies
+in the middle of its operation (eg. out of memory), all files owned by the
+program (process) will be closed and all memory allocated to the program
+will be reclaimed.  This is also true for all other external programs, since
+this is implemented in the kernel.
+
+<HR>
+<PRE>
+wrap file ...
+</PRE>
+
+<P>This is like the cat command, except that lines longer than 75 characters
+will be word-wrapped into multiple lines.
+
+<HR>
+<PRE>
+date
+</PRE>
+
+<P>Display the current date.  The format is: "YYYY/MM/DD-HH:MM:SS.T", in
+24-hour time format.  This command will be extended to display in "human
+mode" (eg. "Tue-13-Jul-1993  05:49:53 pm") and to allow you to set the date.
+Currently, the date will only be set when the system starts up.
+
+<HR>
+<PRE>
+forty
+</PRE>
+
+<P>Switch to the 40-column (VIC) screen on the 128.  This also switches the
+processor into slow mode.
+
+<HR>
+<PRE>
+eighty [rows]
+</PRE>
+
+<P>Switch to the 80-column (VDC) screen on the 128 or to the soft-80 screen
+on the C64.  On the C128, this will also switch the processor into Fast mode
+and will set the VDC screen to display the number of rows that you request,
+or the default number of rows (config option) if you don't specify a number
+of rows.
+
+<HR>
+<PRE>
+read file ...
+</PRE>
+
+<P>File reader.  Useful only for testing how long it takes to read a file.
+No output is generated.
+
+<HR>
+<PRE>
+mem
+mem address
+</PRE>
+
+<P>Display bytes of dynamically allocated memory that are still free and the
+process id of the "mem" process.  If you give the "address" option (a 32-bit
+hexadecimal address), then the memory contents from the given address
+(aligned on a 16-byte boundary) for 256 bytes are displayed in an 80-column
+format.  Users won't normally use this option; it is intended for debugging.
+
+<HR>
+<PRE>
+hello
+</PRE>
+
+<P>This is just a dippy little program that prints out a "hello world"
+message.  It is included so programmers may examine it and its source file
+to see how simple ACE programs are organized.
+
+<HR>
+<PRE>
+window [columns [rows [startColumn [startRow]]]]
+</PRE>
+
+<P>Sets the window size.  If no arguments are give, it will report the
+current window dimensions.  If one or more arguments are given, they will be
+used as window arguments as above.  Missing arguments will be taken from the
+current window's settings.  Screen coordinates start at column 0 of row 0
+and go to the full size of the screen.  You will get an error message if you
+try to set up an illegally sized window and the current window will remain
+unchanged.  After successfully setting a window, it will be filled with a
+checkerboard pattern to indicate the size of the window.  Just clear the
+screen to get rid of this.
+
+<HR>
+<PRE>
+chrset file
+</PRE>
+
+<P>Loads the named file for use as the current character set.  The file must
+be a valid ACE character set.
+
+<HR>
+<PRE>
+keymat file
+</PRE>
+
+<P>Loads the named file for use as the current keyboard translation matrix.
+
+<HR>
+<PRE>
+head [-N] [file ...]
+</PRE>
+
+<P>This utility was donated by Jake Hamby.  He says:  It prints the top N
+lines of any file (or STDIN if no file is given), where N defaults to 10.
+It detects the RUN/STOP key, and prints a usage message if given bogus
+arguments.
+
+<HR>
+<PRE>
+jif
+</PRE>
+
+<P>Displays the current jiffy-clock time to standard out.  ACE's jiffy clock
+is a 32-bit quantity.
+
+<HR>
+<PRE>
+mousetest [-h [-t]]
+</PRE>
+
+<P>This allows you to move crosshairs around on the hi-res screen with a
+mouse plugged into port #1.  If one argument is present, then the regular
+hi-res screen is used (usually, the lowest-resolution screen is used), and
+if two arguments are present, the program will perform a graphics speed test
+(you'd have to examine the code to see what is being tested).
+
+<HR>
+<PRE>
+more file ...
+</PRE>
+
+<P>Full-screen file viewer.  At the prompt, press SPACE to view the next
+screenful of a file, RETURN or cursor-DOWN to view the next line, N to go
+onto the next file to be viewed, or STOP or Q to exit the viewer.  Future
+expansion possibilities include a "go back" command and an ASCII-translation
+mode.
+
+<HR>
+<PRE>
+uuencode [-a] [-al] [-u] [-ac] file ...  >outfile
+</PRE>
+
+<P>A uuencoder.  The uuencode program sends its output to stdout, so you
+will usually want to redirect stdout to a disk file.  This output will be in
+Petscii characters by default, to work with the other text utilities.  If
+you wish to have the output in Ascii, then you can supply one of the flags
+shown in the command template.  "-a" means to produce ASCII-CrLf output,
+"-al" and "-u" (Unix) mean to produce ASCII-Lf output, and "-ac" means to
+produce ASCII-Cr output.  You will very likely want to redirect the output
+to another file with ">outfile" (substitute the name).
+
+<HR>
+<PRE>
+uudecode file ...
+</PRE>
+
+<P>A uudecoder.  The uudecode program will accept either Petscii or Ascii
+files and is able to extract multiple files from one input file.  Extracted
+files are put into PRG files.
+
+<HR>
+<PRE>
+bcode [-help] [-v] [-u] [-m] [-l max_line_count] [filename ...]
+</PRE>
+
+<P>See the external documentation for this application.
+
+<HR>
+<PRE>
+unbcode [-help] [-i] [-v] [-d] [filename ...]
+</PRE>
+
+<P>See the external documentation for this application.
+
+<HR>
+<PRE>
+crc32 file ...
+</PRE>
+
+<P>CRC32 generator.  The numbers generated by this program match CRC32 value
+generated by other programs, such as PKZIP and ZMODEM.  This program is used
+to verify that files have been transported from place to place correctly.
+
+<P>The program uses a table-driven byte-oriented algorithm, so it executes
+very efficiently.
+
+<HR>
+<PRE>
+unkar file ...
+</PRE>
+
+<P>KAR (Kevin's ARchiver) dearchiver, intended to be used for extracting the
+ACE source code, although you may find this archiver format useful for your
+own purposes.
+
+<HR>
+<PRE>
+kar [-help] file ...
+</PRE>
+
+<P>KAR archiver.  This may be used to encode any text files into a single
+KAR archive.  Only text files may be archived, and the resulting archive is
+also a text file, so you can look at it, mail it, etc.  All of the named
+files are included and output goes to stdout, which you will likely want to
+redirect.
+
+<HR>
+<PRE>
+vbm [-help] file ...
+</PRE>
+
+<P>This is a ported version of a program (VBM Bitmap Viewer version 1.10)
+that was released earlier as a stand-alone program.  The ported version has
+all the benefits of all ACE programs: it will run on either the 128 or 64
+and you can conveniently specify the files you want to use the program with.
+You will want to get the image files and the C-language xbm-to-vbm converter
+that were bundled with the original program.
+
+<P>This program required some kernel improvements, including adding basic
+support for 320*200 monochrome graphics on the 64 and 640*200 and 640*491
+(NTSC-64K only) using the VDC display of the 128.  Note that the 320*200 and
+640*491 displays have a pixel aspect of 1-to-1 and the 640*200 display has a
+pixel aspect ratio of 2-to-1.  Since images are normally encoded with a
+1-to-1 aspect ratio, images will look twice as tall as they should on the
+640*200 display.  The vbm program doesn't attempt to correct the aspect of
+images (yet).
+
+<P>When you start the "vbm" program with image files specified, it will
+display the image and then wait for you to press a key.  Pressing "Q" will
+exit from the program.  Pressing any of the cursor keys will scroll the
+image a quarter-screen in the direction you press.  Pressing the HOME key
+will return you to the "home" position of the image.  Pressing the SPACE BAR
+or RETURN key will cause the next image in the "slide show" to be viewed.
+After the last image, the viewer will exit.  Oh, while displaying the
+current image, the program will "peek" at the keyboard buffer and if you
+have typed any key, it will stop displaying the image and interpret the key.
+This will allow you to position or select an image quickly.  There are other
+positioning commands summarized as follows:
+
+<PRE>
+UP,DOWN,LEFT,RIGHT: 1/4 page scroll
+SH-RIGHT,SH-LEFT  : 1/2 page scroll left/right
+SH-LINEFEED,LF    : 1/2 page scroll up/down
+CT-LEFT,CT-RIGHT  : full page scroll left/right
+CT-UP,CT-DOWN     : full page scroll up/down
+i,m,j,k: small scroll up,down,left,right
+1 to 9 : set small-scroll jump (times 8, in pixels)
+CO-LEFT,CO-RIGHT  : go to end left/right
+CO-UP,CO-DOWN     : go to end up/down
+HOME   : go to top left of image
+CLR    : go to center of image
+HELP   : display this help information
+(basic keyboard has equivalent cursor-movement keys)
+</PRE>
+
+<P>Pressing "?" or HELP will bring up a screen with help information and the
+name and number of the file being viewed.  Pressing "0" will take you to the
+first image given on the command line, and pressing "$" will take you to the
+last image on the command line.
+
+<P>The VBM custom image format is basically a binary representation of the
+XBM format for X-windows bitmaps, where XBM gives its data in C-code format.
+There is now a newer version of the VBM format (version #3; the older one
+was version #2), and it features RLE data compression, which gives about 29%
+smaller files on average than version #2 did.  The viewer program can accept
+either version #2 or version #3 images.
+
+<P>The "pbmtovbm.c" file in the "aceNN-usrc.kar" archive C program that will
+convert a file from XBM format to VBM format.  So, all you need to view any
+arbitrary GIF or JPEG file on your 128 is a program like Unix's "xv" to
+convert the image into ".xbm" format, and then convert that into ".bm"
+format.  The ACE viewer will let you scroll around in images larger than
+640x491 (et al), so you don't have to cut the size of larger images.  The
+maximum image size that "vbm" will handle is 2040x65535.
+
+<HR>
+<PRE>
+vbmpr [-help] file
+</PRE>
+
+<P>This program only accepts version #2 images; I will eventually integrate
+this into the VBM viewer program above.
+
+<P>The indicated file will be printed, and if there are multiple files, they
+will be printed one directly after the other.  All images are printed from
+the left margin, and the program uses the 640 dots-per-line graphic mode of
+the printer.  This will produce an image that does not have a perfect aspect
+ratio (which would be 576 dpl), but I figured that it would be more
+important to be able to print 640xN images.  The height of an image is, of
+course, limited only by the amount of paper that you have.
+
+<P>When run, the program will open a channel to your printer through device
+"q:" of your configuration.  This device should be set up as a
+transparent-mode non-auto-linefeed connection to your printer/printer
+interface.
+
+<P>I tested the speed of the program on a 640x480 image, and it took ten
+seconds to input the image from the ramdisk and output the printer data to
+the null device, so the bottleneck in the system for printing images will
+definitely be the speed of the connection to your printer or your printer
+itself, and not this printing program.
+
+<HR>
+<PRE>
+as [-help] [-s] [-d] [file ...]
+</PRE>
+
+<P>See the external documentation for this application.
+
+<HR>
+<PRE>
+term
+</PRE>
+
+<P>See the external documentation for this application.
+
+<HR>
+<PRE>
+fx [-78k] [[-b] file ...] [-t file ...]
+</PRE>
+
+<P>See the external documentation for this application.
+
+<HR>
+<PRE>
+z file
+</PRE>
+
+<P>See the external documentation for this application.
+
+<HR>
+<H2>7. LATER, DUDE</H2>
+
+<P>This system is Public Domain Software.
+
+<P>If you have questions, comments, suggestions, or bug reports, you can
+contact me at the following e-mail address.
+
+<P>Keep on Hackin'!
+
+<P>-Craig Bruce<BR>
+csbruce@pobox.com<BR>
+"Everything from ACE to ZED!"
+<P><HR>
+The Official ACE Page is at: <A
+HREF="http://www.pobox.com/~csbruce/cbm/ace/">http://www.pobox.com/~csbruce/cbm/ace/</A>.
+<HR>
+[<A HREF="index.html">Back to the ACE Page</A>]
+</BODY>
+</HTML>
