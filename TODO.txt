@@ -4,7 +4,6 @@ Apps to convert to ACME format:
   bcode.s
   cp.s
   fx.s
-  grep.s
   kar.s
   keymat.s
   more.s
