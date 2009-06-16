@@ -10,6 +10,7 @@
 jmp grepMain
 !byte aceID1,aceID2,aceID3
 !byte 64,0  ;** stack,reserved
+!convtab pet
 
 ;*** global declarations
 

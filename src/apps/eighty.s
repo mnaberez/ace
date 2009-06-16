@@ -4,6 +4,7 @@
 
 !src "../system/acehead.s"
 !to "../../build/eighty", cbm
+!convtab pet
 
 *= aceAppAddress
 

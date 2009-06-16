@@ -2,6 +2,7 @@
 
 !src "../system/acehead.s"
 !to "../../build/read", cbm
+!convtab pet
 
 *= aceAppAddress
 

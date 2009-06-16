@@ -8,6 +8,7 @@
 jmp main
 !byte aceID1,aceID2,aceID3
 !byte 64,0  ;** stack,reserved
+!convtab pet
 
 freeMemory  = 4  ;(4)
 totalMemory = 8  ;(4)

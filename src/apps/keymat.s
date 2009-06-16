@@ -4,6 +4,7 @@
 
 !src "../system/acehead.s"
 !to "../../build/keymat", cbm
+!convtab pet
 
 *= aceAppAddress
 

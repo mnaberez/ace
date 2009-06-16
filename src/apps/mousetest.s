@@ -4,6 +4,7 @@
 
 !src "../system/acehead.s"
 !to "../../build/mousetest", cbm
+!convtab pet
 
 *= aceAppAddress
 

@@ -2,6 +2,7 @@
 
 !src "../system/acehead.s"
 !to "../../build/jif", cbm
+!convtab pet
 
 *= aceAppAddress
 
