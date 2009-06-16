@@ -2,13 +2,15 @@
 
 ;more [-help] file ...
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@0:more"
+!src "../system/acehead.s"
+!to "../../build/more", cbm
+!convtab pet
+
+*= aceAppAddress
 
 jmp main
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 ;*** global declarations
 
@@ -57,8 +59,8 @@ die = *
    jmp aceProcExit
 
 tpaMsg = *
-   .asc "Insufficient program space to run more"
-   .byte chrCR,0
+   !pet "Insufficient program space to run more"
+   !byte chrCR,0
 
 usage = *
    lda #<usageMsg
@@ -67,12 +69,12 @@ usage = *
    jmp die
 
 usageMsg = *
-   .asc "usage: more [-help] file ..."
-   .byte chrCR,0
+   !pet "usage: more [-help] file ..."
+   !byte chrCR,0
 
 windowMsg = *
-   .asc "error: display must have at least 10 columns and 2 rows."
-   .byte chrCR,0
+   !pet "error: display must have at least 10 columns and 2 rows."
+   !byte chrCR,0
 
 mainInit = *
    lda #false
@@ -91,7 +93,7 @@ mainInit = *
    ldy #>windowMsg
    jsr eputs
    jmp die
-+  lda syswork+2
+++ lda syswork+2
    ldy syswork+3
    sta rowHome+0
    sty rowHome+1
@@ -137,8 +139,8 @@ checkStop = *
    jmp die
 
    stoppedMsg = *
-   .asc "<Stopped>"
-   .byte chrCR,0
+   !pet "<Stopped>"
+   !byte chrCR,0
 
 more = *
    lda fileParm
@@ -273,7 +275,8 @@ putc = *
    lda #1
    ldy #0
    jmp write
-   putcBuffer .buf 1
+   putcBuffer = *
+      !fill 1
 
 getarg = *
    sty zp+1
@@ -406,7 +409,8 @@ getlineEOF = *
    sec
    rts
 
-glTabAdd .buf 1
+glTabAdd = *
+   !fill 1
 
 getlineTAB = *
    ldx pos
@@ -493,7 +497,8 @@ putline = *
 scrScroll = *
    brk
 
-promptChar .buf 1
+promptChar = *
+   !fill 1
 
 prompt = *  ;(.A=promptType{0:more,1:eof,2:error}) : .A=keyChar
    ;** get prompt string
@@ -587,22 +592,23 @@ prompt = *  ;(.A=promptType{0:more,1:eof,2:error}) : .A=keyChar
    lda promptChar
    rts
 
-promptTab .word promptMore,promptEOF,promptError
+promptTab = *
+   !word promptMore,promptEOF,promptError
 promptMore = *
-   .asc "--More-- ("
-   .byte 0
+   !pet "--More-- ("
+   !byte 0
 promptEOF = *
-   .asc "--EOF-- ("
-   .byte 0
+   !pet "--EOF-- ("
+   !byte 0
 promptError = *
-   .asc "--ERROR!-- ("
-   .byte 0
+   !pet "--ERROR!-- ("
+   !byte 0
 promptColon = *
-   .asc ":"
-   .byte 0
+   !pet ":"
+   !byte 0
 promptClose = *
-   .asc ")"
-   .byte 0
+   !pet ")"
+   !byte 0
 
 catString = *  ;( (.AY)=string ) : .X=strLen
    sta catStrPtr+0
@@ -638,7 +644,7 @@ rvsString = *
 +  pla
    clc
    adc #64
-+  sta string,y
+++ sta string,y
    iny
    jmp rvsStringNext
 

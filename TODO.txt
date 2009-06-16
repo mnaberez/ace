@@ -4,7 +4,6 @@ Apps to convert to ACME format:
   bcode.s
   fx.s
   kar.s
-  more.s
   sort.s
   term.s
   tr.s
