@@ -1,14 +1,13 @@
 ;date program
 
-;the program is in Buddy-assembler format.
+!src "../system/acehead.s"
+!to "../../build/date", cbm
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@:date"
+*= aceAppAddress
 
 jmp main
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 main = *
    lda #<dateBuf
@@ -57,11 +56,11 @@ getasc = *  ;( .A=bcd ) : .A=aschi, .X=asclo
 
 dateNum = *
         ;0123456789012345678901
-   .asc "1993/05/16-18:04:50.3z"
+   !pet "1993/05/16-18:04:50.3z"
 dateNumFields = *
-   .byte 0,2,5,8,11,14,17,20
+   !byte 0,2,5,8,11,14,17,20
 dateStr = *
         ;0123456789012345678901234567
-   .asc "Sun-16-May-1993  06:03:50 pm"
-   .byte 0
+   !pet "Sun-16-May-1993  06:03:50 pm"
+   !byte 0
 dateBuf = *

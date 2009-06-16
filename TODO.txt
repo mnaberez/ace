@@ -5,7 +5,6 @@ Apps to convert to ACME format:
   cp.s
   crc32.s
   crc32a.s
-  date.s
   eighty.s
   forty.s
   fx.s
