@@ -1,12 +1,13 @@
 ;*** rm program
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@0:rm"
+!src "../system/acehead.s"
+!to "../../build/rm", cbm
+
+*= aceAppAddress
 
 jmp removeMain
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 ;*** global declarations
 
@@ -42,7 +43,8 @@ putc = *
    lda #1
    ldy #0
    jmp write
-   putcBuffer .buf 1
+putcBuffer = *
+   !fill 1
 
 getchar = *
    ldx #stdin
@@ -59,7 +61,8 @@ getc = *
    rts
 +  sec
    rts
-   getcBuffer .buf 1
+getcBuffer = *
+   !fill 1
 
 ;===remove library===
 getarg = *
@@ -101,9 +104,9 @@ rmUsage = *
    jmp puts
 
 rmUsageMsg = *
-   .asc "Usage: rm file1 file2 ... fileN"
-   .byte chrCR
-   .byte 0
+   !pet "Usage: rm file1 file2 ... fileN"
+   !byte chrCR
+   !byte 0
 
 rmEnoughArgs = *
    lda #1
@@ -142,8 +145,8 @@ stopped = *
    ldy #>stoppedMsg
    jmp eputs
    stoppedMsg = *
-   .asc "<stopped>"
-   .byte chrCR,0
+   !pet "<stopped>"
+   !byte chrCR,0
 
 rmError = *
    lda #<rmErrorMsg1
@@ -157,14 +160,14 @@ rmError = *
    jmp eputs
 
 rmErrorMsg1 = *
-   .asc "Error attempting to remove "
-   .byte chrQuote
-   .byte 0
+   !pet "Error attempting to remove "
+   !byte chrQuote
+   !byte 0
 
 rmErrorMsg2 = *
-   .byte chrQuote
-   .byte chrCR
-   .byte 0
+   !byte chrQuote
+   !byte chrCR
+   !byte 0
 
 rmEcho = *
    lda #<rmEchoMsg1
@@ -178,13 +181,13 @@ rmEcho = *
    jmp eputs
 
 rmEchoMsg1 = *
-   .asc "Removing file "
-   .byte chrQuote,0
+   !pet "Removing file "
+   !byte chrQuote,0
 
 rmEchoMsg2 = *
-   .byte chrQuote
-   .asc "..."
-   .byte chrCR,0
+   !byte chrQuote
+   !pet "..."
+   !byte chrCR,0
 
 ;===the end===
 rmEnd = *

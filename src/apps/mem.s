@@ -1,12 +1,13 @@
 ;*** memory status program
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@:mem"
+!src "../system/acehead.s"
+!to "../../build/mem", cbm
+
+*= aceAppAddress
 
 jmp main
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 freeMemory  = 4  ;(4)
 totalMemory = 8  ;(4)
@@ -24,7 +25,7 @@ main = *
    cmp #1
    beq ++
 +  jmp memArg
-+  lda #0
+++ lda #0
    ldx #7
 -  sta processId,x
    dex
@@ -66,19 +67,20 @@ main = *
    rts
 
 processMsg = *
-   .asc "ProcessID    ="
-   .byte 0
+   !pet "ProcessID    ="
+   !byte 0
 totalMsg = *
-   .asc "Total Memory ="
-   .byte 0
+   !pet "Total Memory ="
+   !byte 0
 freeMsg = *
-   .asc "Dynamic Free ="
-   .byte 0
+   !pet "Dynamic Free ="
+   !byte 0
 tpaMsg = *
-   .asc "Program Free ="
-   .byte 0
+   !pet "Program Free ="
+   !byte 0
 
-numbuf .buf 13
+numbuf = *
+   !fill 13
 
 putnum = *
    lda #<numbuf
@@ -127,7 +129,8 @@ putc = *
    lda #1
    ldy #0
    jmp write
-   putcBuffer .buf 1
+putcBuffer = * 
+   !fill 1
 
 getarg = *
    sty zp+1
@@ -175,7 +178,7 @@ scanhex = *
    dex
    bpl -
    ldy #0
--  lda (zp),y
+-- lda (zp),y
    bne +
    rts
 +  and #$7f
@@ -295,8 +298,8 @@ memArg = *
 ;12345678: 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff ;0123456789abcdef
 
 headerMsg = *
-   .asc "addr\off:  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f"
-   .byte chrCR,0
+   !pet "addr\off:  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f"
+   !byte chrCR,0
 
 memTestBandwidth = *
    lda #2
@@ -331,14 +334,14 @@ memTestBandwidth = *
    rts
 
 memTestBandwidthMsg1 = *
-   .asc "Bandwidth test: fetching 16384 bytes 8192 times..."
-   .byte chrCR
-   .asc "start"
-   .byte 7,chrCR,0
+   !pet "Bandwidth test: fetching 16384 bytes 8192 times..."
+   !byte chrCR
+   !pet "start"
+   !byte 7,chrCR,0
 memTestBandwidthMsg2 = *
-   .byte 7
-   .asc "finshed"
-   .byte chrCR,0
+   !byte 7
+   !pet "finshed"
+   !byte chrCR,0
 
 memTestLatency = *
    lda #<memTestLatencyMsg1
@@ -369,14 +372,14 @@ memTestLatency = *
    rts
 
 memTestLatencyMsg1 = *
-   .asc "Latency test: fetching one byte 1_048_576 times..."
-   .byte chrCR
-   .asc "start"
-   .byte 7,chrCR,0
+   !pet "Latency test: fetching one byte 1_048_576 times..."
+   !byte chrCR
+   !pet "start"
+   !byte 7,chrCR,0
 memTestLatencyMsg2 = *
-   .byte 7
-   .asc "finshed"
-   .byte chrCR,0
+   !byte 7
+   !pet "finished"
+   !byte chrCR,0
 
 ;===bss===
 
