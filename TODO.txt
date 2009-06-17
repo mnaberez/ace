@@ -4,8 +4,6 @@ Apps to convert to ACME format:
   fx.s
   term.s
   tr.s
-  unbcode.s
-  unbcodehelp.s
   vbm.s
   vbmpr.s
   z.s

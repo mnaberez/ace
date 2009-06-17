@@ -2,13 +2,15 @@
 
 ;assumes 1-65535 segments, 1-65536 temp files max, 0-4 G file length, 64 frags
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@0:unbcode"
+!src "../system/acehead.s"
+!to "../../build/unbcode", cbm
+!convtab pet
+
+*= aceAppAddress
 
 jmp main
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 ;*** global declarations
 
@@ -23,8 +25,9 @@ maxFilename = 85
 maxHave     = 64
 maxTempname = 20
 copyBufSize = 4096
-version .asc "1.00"
-        .byte 0
+version = *
+   !pet "1.00"
+   !byte 0
 
 hrFromSeg      = 0  ;(2)
 hrToSeg        = 2  ;(2)
@@ -34,19 +37,31 @@ hrIsEnd        = 10 ;(1)
 hrFilename     = 11 ;(17)
 hrSize         = 32 ;(really 28)
 
-asciiFile .buf 1
-temp .buf 1
+asciiFile = *
+   !fill 1
+temp = *
+   !fill 1
 
-progName     .buf 2
-informative  .buf 1
-verbose      .buf 1
-debug        .buf 1
-readFilename .buf 2
-readLineNum  .buf 4
-haveCount    .buf 1
-statusFileExists .buf 1
-nextTempName .buf 2
-filenameUsed .buf 1
+progName = *
+   !fill 2
+informative = *
+   !fill 1
+verbose = *
+   !fill 1
+debug = *
+   !fill 1
+readFilename = *
+   !fill 2
+readLineNum = *
+   !fill 4
+haveCount = *
+   !fill 1
+statusFileExists = *
+   !fill 1
+nextTempName = *
+   !fill 2
+filenameUsed = *
+   !fill 1
 
 arg        = 2  ;(2)
 name       = 4  ;(2)
@@ -103,7 +118,8 @@ putc = *
    lda #1
    ldy #0
    jmp write
-   putcBuffer .buf 1
+   putcBuffer = *
+      !fill 1
 
 getchar = *
    ldx #stdin
@@ -120,7 +136,8 @@ getc = *
    rts
 +  sec
    rts
-   getcBuffer .buf 1
+   getcBuffer = *
+      !fill 1
 
 getarg = *
    sty zp+1
@@ -161,8 +178,8 @@ die = *
    jmp aceProcExit
 
 tpaMsg = *
-   .asc "Insufficient program space to run unbcode"
-   .byte chrCR,0
+   !pet "Insufficient program space to run unbcode"
+   !byte chrCR,0
 
 tpaOk = *
    ;** check argument count
@@ -181,10 +198,10 @@ usage = *
    jmp die
 
 usageMsg = *
-   .asc "usage: unbcode [-v] [-i] [-d] [-help] filename ..."
-   .byte chrCR
-   .asc "       [-v]=verbose, [-i]=informative, [-d]=debugging info"
-   .byte chrCR,0
+   !pet "usage: unbcode [-v] [-i] [-d] [-help] filename ..."
+   !byte chrCR
+   !pet "       [-v]=verbose, [-i]=informative, [-d]=debugging info"
+   !byte chrCR,0
 
 enoughArgs = *
    ;** set globals
@@ -305,12 +322,12 @@ error = *
    rts
 
 errorMsg1 = *
-   .asc "Error attempting to unbcode file "
-   .byte chrQuote,0
+   !pet "Error attempting to unbcode file "
+   !byte chrQuote,0
 errorMsg2 = *
-   .byte chrQuote
-   .asc ", continuing"
-   .byte chrCR,0
+   !byte chrQuote
+   !pet ", continuing"
+   !byte chrCR,0
 
 echo = *
    lda #<echoMsg1
@@ -324,13 +341,13 @@ echo = *
    jmp eputs
 
 echoMsg1 = *
-   .asc "unbcoding file "
-   .byte chrQuote,0
+   !pet "unbcoding file "
+   !byte chrQuote,0
 
 echoMsg2 = *
-   .byte chrQuote
-   .asc "..."
-   .byte chrCR,0
+   !byte chrQuote
+   !pet "..."
+   !byte chrCR,0
 
 checkStop = *
    jsr aceConStopkey
@@ -342,13 +359,15 @@ checkStop = *
    jmp die
 
    stoppedMsg = *
-   .asc "<Stopped>"
-   .byte chrCR,0
+      !pet "<Stopped>"
+      !byte chrCR,0
+    
+!src "./unbcodehelp.s"
 
-.seq "unbcodehelp.s"
-
-statFcb .buf 1
-statHR  .buf 1
+statFcb = *
+   !fill 1
+statHR = *
+   !fill 1
 
 writeStatusData = *  ;( statFcb )
    lda #255
@@ -416,58 +435,63 @@ writeStatusData = *  ;( statFcb )
    jmp writeStatusNext
 
    begMidEndMsg = *
-   .byte "b","e","g"," "," ",0
-   .byte "m","i","d"," "," ",0
-   .byte "e","n","d"," "," ",0
+      !byte "b","e","g"," "," ",0
+      !byte "m","i","d"," "," ",0
+      !byte "e","n","d"," "," ",0
    tempNamePrefix = *
-   .asc "0BC"
-   .byte 0
+      !pet "0BC"
+      !byte 0
 
 saveStatusFile = *
    bit verbose
-   bpl +
+   bpl .ssf1
    lda #<saveStatMsg
    ldy #>saveStatMsg
    jsr eputs
-+  lda #<statusFilename
+.ssf1:
+   lda #<statusFilename
    ldy #>statusFilename
    sta zp+0
    sty zp+1
    lda haveCount
-   bne ++
+   bne .ssf3
    lda statusFileExists
-   bne +
+   bne .ssf2
    rts
-+  jsr aceFileRemove
+.ssf2:
+   jsr aceFileRemove
    rts
-+  lda #"w"
+.ssf3:
+   lda #"w"
    jsr openOverwrite
-   bcc +
+   bcc .ssf4
    lda #<statusWriteErrMsg
    ldy #>statusWriteErrMsg
    jsr eputs
    lda #stderr
-+  sta statFcb
+.ssf4:
+   sta statFcb
    jsr writeStatusData
    lda statFcb
    cmp #stderr
-   beq +
+   beq .ssf5
    jsr close
-+  rts
+.ssf5:
+   rts
 
 saveStatMsg = *
-   .asc "saving status file 0BC-STAT"
-   .byte chrCR,0
+   !pet "saving status file 0BC-STAT"
+   !byte chrCR,0
 statusFilename = *
-   .asc "0BC-STAT"
-   .byte 0
+   !pet "0BC-STAT"
+   !byte 0
 statusWriteErrMsg = *
-   .asc "Cannot open "
-   .byte chrQuote
-   .asc "0BC-STAT"
-   .byte chrQuote
-   .asc ", writing status to stderr:"
-   .byte chrCR,0
+   !pet "Cannot open "
+   !byte chrQuote
+   !pet "0BC-STAT"
+   !byte chrQuote
+   !pet ", writing status to stderr:"
+   !byte chrCR,0
 
 discardSegment = *
    lda curHave
@@ -505,8 +529,8 @@ discardSegment = *
 +  rts
 
 discMsg = *
-   .asc "discarding segment"
-   .byte chrCR,0
+   !pet "discarding segment"
+   !byte chrCR,0
 
 discardAppendedSeg = *
    ldy #hrToSeg
@@ -574,8 +598,8 @@ discardAppendedSeg = *
    jmp discardSegExit
 
 discAppMsg = *
-   .asc "discarding appended segment"
-   .byte chrCR,0
+   !pet "discarding appended segment"
+   !byte chrCR,0
 
 loadStatusFile = *
    bit verbose
@@ -607,10 +631,11 @@ loadStatusFile = *
 +  rts
 
 loadStatMsg = *
-   .asc "scanning status file 0BC-STAT"
-   .byte chrCR,0
+   !pet "scanning status file 0BC-STAT"
+   !byte chrCR,0
 
-ssPos .buf 1
+ssPos = *
+   !fill 1
 
 scanStatusFile = *
    ;** read status line
@@ -725,8 +750,8 @@ scanStatusFile = *
    jmp scanStatusFile
 
 scanTooManyFrags = *
-   .asc "too many fragments in 0BC-STAT, ignoring fragment"
-   .byte chrCR,0
+   !pet "too many fragments in 0BC-STAT, ignoring fragment"
+   !byte chrCR,0
 
 ;===bss===
 bss         = *

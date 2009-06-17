@@ -1,3 +1,5 @@
+!convtab pet
+
 unbcode = *
    ;** open file
    lda name+0
@@ -54,9 +56,9 @@ unbcodeBody = *
    jmp processBegin
 
    petsciiBegin = *
-   .asc "--bcode-begin "
+      !pet "--bcode-begin "
    asciiBegin = *
-   .byte $2d,$2d,$62,$63,$6f,$64,$65,$2d,$62,$65,$67,$69,$6e,$20
+      !byte $2d,$2d,$62,$63,$6f,$64,$65,$2d,$62,$65,$67,$69,$6e,$20
    
    ;** process "begin" line
    processBegin = *
@@ -145,16 +147,16 @@ unexpectedEof = *
    rts
 
 unexEofMsg = *
-   .asc "unexpected EOF, ignoring segment."
-   .byte chrCR,0
+   !pet "unexpected EOF, ignoring segment."
+   !byte chrCR,0
 
 segTooBigMsg = *
-   .asc "segment number is larger than 65535, ignoring segment."
-   .byte chrCR,0
+   !pet "segment number is larger than 65535, ignoring segment."
+   !byte chrCR,0
 
 badCharsMsg = *
-   .asc "warning: bad characters on line, ignoring line."
-   .byte chrCR,0
+   !pet "warning: bad characters on line, ignoring line."
+   !byte chrCR,0
 
 makePetsciiName = *
    bit asciiFile
@@ -212,14 +214,15 @@ echoExtractName = *
    jmp eputs
 
 echoExtractMsg1 = *
-   .asc "extracting seg "
-   .byte 0
+   !pet "extracting seg "
+   !byte 0
 echoExtractMsg2 = *
-   .asc " of "
-   .byte chrQuote,0
+   !pet " of "
+   !byte chrQuote,0
 echoExtractMsg3 = *
-   .byte chrQuote,chrCR,0
-numbuf .buf 12
+   !byte chrQuote,chrCR,0
+numbuf = *
+   !fill 12
 
 reportOpenError = *
    lda zp+0
@@ -231,14 +234,19 @@ reportOpenError = *
    rts
 
    reportOpenErrorMsg = *
-   .asc ": cannot open, continuing"
-   .byte chrCR,0
+   !pet ": cannot open, continuing"
+   !byte chrCR,0
 
-scanDigit .buf 1
-scanSave .buf 4
-scanTemp .buf 1
-scanIndex .buf 1
-scanAnything .buf 1
+scanDigit = *
+   !fill 1
+scanSave = *
+   !fill 4
+scanTemp = *
+   !fill 1
+scanIndex = *
+   !fill 1
+scanAnything = *
+   !fill 1
 
 scanNum = *  ;( .Y=inLineIndex ) : .Y=scan, [scanVal]=num, .CS=err
    ldx #3
@@ -266,7 +274,7 @@ scanNum = *  ;( .Y=inLineIndex ) : .Y=scan, [scanVal]=num, .CS=err
    beq scanError
    clc
    rts
-+  and #$0f
+++ and #$0f
    sta scanDigit
    lda #$ff
    sta scanAnything
@@ -279,7 +287,7 @@ scanNum = *  ;( .Y=inLineIndex ) : .Y=scan, [scanVal]=num, .CS=err
    bpl -
    lda #2
    sta scanIndex
--  clc
+-- clc
    ldy #4
    ldx #0
 -  rol scanVal,x
@@ -335,11 +343,13 @@ beginError = *
    jmp searchLine
 
 beginErrorMsg = *
-   .asc "invalid --bcode-begin line format, ignoring segment"
-   .byte chrCR,0
+   !pet "invalid --bcode-begin line format, ignoring segment"
+   !byte chrCR,0
 
-convertPads .buf 1
-convertChars .buf 1
+convertPads = *
+   !fill 1
+convertChars = *
+   !fill 1
 
 convertLine = *
    ldx #0
@@ -361,7 +371,8 @@ convertLine = *
 +  sec
    rts
 
-crunchBytes .buf 1
+crunchBytes = *
+   !fill 1
 
 crunchLine = *
    ldx #0
@@ -508,7 +519,7 @@ crcFinish = *
 crcGen = *
    ;** generate CRC table at runtime
    ldy #0
--  ldx #0
+-- ldx #0
    sty crc+0
    stx crc+1
    stx crc+2
@@ -547,8 +558,10 @@ crcGen = *
    bne --
    rts
 
-hitLastLine .buf 1
-lastLineTerminator .buf 1
+hitLastLine = *
+   !fill 1
+lastLineTerminator = *
+   !fill 1
 
 getline = *
    lda hitLastLine
@@ -637,8 +650,10 @@ getByteFillBuf = *
 +  sec
    rts
 
-setIndex .buf 1
-setCountdown .buf 1
+setIndex = *
+   !fill 1
+setCountdown = *
+   !fill 1
 
 buildDecodeTable = *
    ldx #0
@@ -669,10 +684,13 @@ buildDecodeTable = *
    sta decodeTable+$3d
    rts
 
-petTableSet .asc "AZaz09++//"
-ascTableSet .byte $41,$5a,$61,$7a,$30,$39,$2b,$2b,$2f,$2f
+petTableSet = *
+   !pet "AZaz09++//"
+ascTableSet 
+   !byte $41,$5a,$61,$7a,$30,$39,$2b,$2b,$2f,$2f
 
-setLimit .buf 1
+setLimit = *
+   !fill 1
 
 buildSet = *
    inx
@@ -713,7 +731,7 @@ processFinish = *  ;process the bcode-end line
    finCheckSegment = *
    jsr scanNum
    bcc +
--  lda #1
+-- lda #1
    jmp badFinish
 +  ldx #3
 -  lda scanVal,x
@@ -725,7 +743,7 @@ processFinish = *  ;process the bcode-end line
    finCheckSize = *
    jsr scanNum
    bcc +
--  lda #2
+-- lda #2
    jmp badFinish
 +  ldx #3
 -  lda scanVal,x
@@ -738,7 +756,7 @@ processFinish = *  ;process the bcode-end line
    iny
    jsr scanHex
    bcc +
--  lda #3
+-- lda #3
    jmp badFinish
 +  ldx #3
 -  lda scanVal,x
@@ -778,7 +796,8 @@ scanHex = *
    clc
 +  rts
 
-hexToBinXsave .buf 1
+hexToBinXsave = *
+   !fill 1
 
 hexToBin = *
    bit asciiFile
@@ -835,29 +854,33 @@ badFinish = *  ;.A=error [0=token,1=segment,2=size,3=crc]
    rts
 
 badFinVec = *
-   .word badFinToken,badFinSegment,badFinSize,badFinCrc
+   !word badFinToken,badFinSegment,badFinSize,badFinCrc
 badFinToken = *
-   .asc ": invalid token on finish line"
-   .byte 0
+   !pet ": invalid token on finish line"
+   !byte 0
 badFinSegment = *
-   .asc ": segment number mismatch"
-   .byte 0
+   !pet ": segment number mismatch"
+   !byte 0
 badFinSize = *
-   .asc ": file size mismatch"
-   .byte 0
+   !pet ": file size mismatch"
+   !byte 0
 badFinCrc = *
-   .asc ": CRC-32 checksum mismatch"
-   .byte 0
+   !pet ": CRC-32 checksum mismatch"
+   !byte 0
 badFinDiscard = *
-   .asc ", ignoring segment"
-   .byte chrCR,0
+   !pet ", ignoring segment"
+   !byte chrCR,0
 
-petEnd .asc "--bcode-end "
-ascEnd .byte $2d,$2d,$62,$63,$6f,$64,$65,$2d,$65,$6e,$64,$20
+petEnd = *
+   !pet "--bcode-end "
+ascEnd = *
+   !byte $2d,$2d,$62,$63,$6f,$64,$65,$2d,$65,$6e,$64,$20
 
-petCont .asc "--bcode-continued "
-ascCont .byte $2d,$2d,$62,$63,$6f,$64,$65,$2d,$63,$6f,$6e,$74,$69,$6e,$75
-        .byte $65,$64,$20
+petCont = *
+   !pet "--bcode-continued "
+ascCont = *
+   !byte $2d,$2d,$62,$63,$6f,$64,$65,$2d,$63,$6f,$6e,$74,$69,$6e,$75
+   !byte $65,$64,$20
 ascContEnd = *
 
 getTempNameStr = *  ;( tempName, .A=putFiletype ) : tempNameStr, (zp)
@@ -897,9 +920,10 @@ utoaz = *  ;( 0+.X=var32, .A=width, (zp)=store )
    sta (zp),y
 +  iny
    bne -
-+  rts
+++ rts
 
-fileMode .buf 1
+fileMode = *
+   !fill 1
 
 getTempFile = *  ;( outName, segnum ) : curHave, curHaveNum, outfile, .CS=err
    ;** search to append to existing file
@@ -936,8 +960,8 @@ getTempFile = *  ;( outName, segnum ) : curHave, curHaveNum, outfile, .CS=err
    sec
    rts
    ignoreDupMsg = *
-   .asc "ignoring duplicate segment"
-   .byte chrCR,0
+      !pet "ignoring duplicate segment"
+      !byte chrCR,0
 
 +  ldy #hrToSeg
    lda (h),y
@@ -992,8 +1016,8 @@ getTempFile = *  ;( outName, segnum ) : curHave, curHaveNum, outfile, .CS=err
    sec
    rts
    haveOverMsg = *
-   .asc "fragment table full, ignoring current segment"
-   .byte chrCR,0
+      !pet "fragment table full, ignoring current segment"
+      !byte chrCR,0
 
    ;** open temporary file
    openTempFile = *
@@ -1018,8 +1042,8 @@ getTempFile = *  ;( outName, segnum ) : curHave, curHaveNum, outfile, .CS=err
    sec
    rts
    openErrMsg = *
-   .asc ": cannot open, ignoring segment"
-   .byte chrCR,0
+      !pet ": cannot open, ignoring segment"
+      !byte chrCR,0
 
 getTempFileNameOnly = *  ;( nextTempName ) : tempName
    lda nextTempName+0
@@ -1109,7 +1133,7 @@ insertHaveRec = *  ;( segnum, tempName, outName ) : curHave
    inc haveCount
 
    ;** find correct position for new record
--  dec curHave
+-- dec curHave
    lda curHave
    cmp #$ff
    beq insertHaveRecInit
@@ -1207,7 +1231,7 @@ writeSpaces = *
    jsr fputs
    rts
    spacesMsg = *
-   .byte $20,$20,0
+      !byte $20,$20,0
 
 commitSegment = *
    ;** add byte length, update IsEnd flag in haverec
@@ -1229,7 +1253,8 @@ commitSegment = *
    jsr checkComplete
    rts
 
-checkFilenamePtr .buf 2
+checkFilenamePtr = *
+   !fill 2
 
 checkComplete = *
    lda curHave
@@ -1277,15 +1302,15 @@ checkComplete = *
    rts
 
 completeMsg1 = *
-   .asc "--Reassembled "
-   .byte chrQuote,0
+   !pet "--Reassembled "
+   !byte chrQuote,0
 completeMsg2 = *
-   .byte chrQuote,chrCR,0
+   !byte chrQuote,chrCR,0
 
 removeHaveRec = *  ;( .A=haveRec )
    dec haveCount
    sta haveRec
--  lda haveRec
+-- lda haveRec
    cmp haveCount
    bcc +
    rts
@@ -1300,7 +1325,8 @@ removeHaveRec = *  ;( .A=haveRec )
    inc haveRec
    jmp --
 
-checkFromPlus1 .buf 2
+checkFromPlus1 = *
+   !fill 2
 
 checkCoalesce = *  ;( curHave )
    ldx curHave
@@ -1435,11 +1461,11 @@ checkCoalesce = *  ;( curHave )
    rts
 
 coalesceMsg1 = *
-   .asc "coalescing segs "
-   .byte 0
+   !pet "coalescing segs "
+   !byte 0
 coalesceMsg2 = *
-   .asc " of "
-   .byte chrQuote,0
+   !pet " of "
+   !byte chrQuote,0
 
 eputRange = *
    sta work+0
@@ -1504,11 +1530,12 @@ openTemp = *  ;( .X=haveRec, .A=mode ) : .A=fcb, .CS=err
 +  rts
 
    openTempMsg = *
-   .asc ": cannot open, should be able to, continuing"
-   .byte chrCR,0
+      !pet ": cannot open, should be able to, continuing"
+      !byte chrCR,0
 
-copySegLen .buf 2
-           .byte $00,$00
+copySegLen = *
+   !fill 2
+   !byte $00,$00
 
 copyFile = *  ;( fin, fout, bytes-- )
    lda #<copyBuf
@@ -1528,7 +1555,7 @@ copyFile = *  ;( fin, fout, bytes-- )
    jmp ++
 +  lda #<copyBufSize
    ldy #>copyBufSize
-+  ldx fin
+++ ldx fin
    jsr read
    beq +
    sta copySegLen+0
@@ -1562,10 +1589,11 @@ copyFile = *  ;( fin, fout, bytes-- )
    rts
 
    copyLenMsg = *
-   .asc "Insufficient temp data coalesced, shouldn't happen, continuing"
-   .byte chrCR,0
+      !pet "Insufficient temp data coalesced, shouldn't happen, continuing"
+      !byte chrCR,0
 
-openOvMode .buf 1
+openOvMode = *
+   !fill 1
 
 openOverwrite = *  ;( (zp)=name, .A=mode ) : .A=Fcb, .CS=err
    sta openOvMode
@@ -1584,7 +1612,8 @@ openOverwrite = *  ;( (zp)=name, .A=mode ) : .A=Fcb, .CS=err
    bcs -
    rts
 
-renameOvName .buf 2
+renameOvName = *
+   !fill 2
 
 renameOverwrite = *  ;( (zp)=name, (zw)=newName ) : .CS=err
    jsr aceFileRename
@@ -1613,7 +1642,8 @@ renameOverwrite = *  ;( (zp)=name, (zw)=newName ) : .CS=err
    bcs -
    rts
 
-renameOvNewName .buf 2
+renameOvNewName = *
+   !fill 2
 
 reportRenameError = *
    lda zw+0
@@ -1638,14 +1668,14 @@ reportRenameError = *
    rts
 
 renameErrMsg1 = *
-   .asc "Cannot rename "
-   .byte chrQuote,0
+   !pet "Cannot rename "
+   !byte chrQuote,0
 renameErrMsg2 = *
-   .byte chrQuote
-   .asc " to "
-   .byte chrQuote,0
+   !byte chrQuote
+   !pet " to "
+   !byte chrQuote,0
 renameErrMsg3 = *
-   .byte chrQuote
-   .asc ", continuing."
-   .byte chrCR,0
+   !byte chrQuote
+   !pet ", continuing."
+   !byte chrCR,0
 
