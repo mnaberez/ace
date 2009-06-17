@@ -13,7 +13,6 @@ System files to convert to ACME format:
   acecall.s
   acecon.s
   acehead.s
-  acekey-dvorak.s
   acekey-qwerty.s
   acemem.s
   acepar.s
