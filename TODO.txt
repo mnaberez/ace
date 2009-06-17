@@ -8,3 +8,22 @@ Apps to convert to ACME format:
   vbmpr.s
   z.s
 
+System files to convert to ACME format:
+  ace.s
+  acecall.s
+  acecon.s
+  acehead.s
+  acekey-dvorak.s
+  acekey-qwerty.s
+  acemem.s
+  acepar.s
+  acerd.s
+  acesoft80.s
+  aceswift.s
+  acevdc.s
+  acevic.s
+  acewin.s
+  config.s
+  kernhead.s
+  sh.s
+ 
