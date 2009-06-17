@@ -2,13 +2,15 @@
 
 ;bcode [-help] [-v] [-u] [-m] [-l max_line_count] filename ...
 
-.seq "acehead.s"
-.org aceAppAddress
-.obj "@0:bcode"
+!src "../system/acehead.s"
+!to "../../build/bcode", cbm
+!convtab pet
+
+*= aceAppAddress
 
 jmp main
-.byte aceID1,aceID2,aceID3
-.byte 64,0  ;** stack,reserved
+!byte aceID1,aceID2,aceID3
+!byte 64,0  ;** stack,reserved
 
 ;*** global declarations
 
@@ -71,8 +73,8 @@ die = *
    jmp aceProcExit
 
 tpaMsg = *
-   .asc "Insufficient program space to run bcode"
-   .byte chrCR,0
+   !pet "Insufficient program space to run bcode"
+   !byte chrCR,0
 
 usage = *
    lda #<usageMsg
@@ -81,14 +83,14 @@ usage = *
    jmp die
 
 usageMsg = *
-   .asc "usage: bcode [-help] [-v] [-u] [-m] [-l max_line_count] filename ..."
-   .byte chrCR
-   .asc "flags: -v:verbose, -u:unix-ascii, -m:ms-dos-ascii"
-   .byte chrCR,0
+   !pet "usage: bcode [-help] [-v] [-u] [-m] [-l max_line_count] filename ..."
+   !byte chrCR
+   !pet "flags: -v:verbose, -u:unix-ascii, -m:ms-dos-ascii"
+   !byte chrCR,0
 
 defaultAlias = *
-   .asc "stdin"
-   .byte 0
+   !pet "stdin"
+   !byte 0
 
 mainInit = *
    ;** set globals
@@ -224,8 +226,8 @@ flagLerror = *
    jsr eputs
    jmp die
 flagLerrorMsg = *
-   .asc "ERROR: invalid maximum line limit given with -l option"
-   .byte chrCR,0
+   !pet "ERROR: invalid maximum line limit given with -l option"
+   !byte chrCR,0
 
 echo = *
    lda #<echoMsg1
@@ -240,12 +242,12 @@ echo = *
    rts
 
 echoMsg1 = *
-   .asc "bcoding file "
-   .byte chrQuote,0
+   !pet "bcoding file "
+   !byte chrQuote,0
 echoMsg2 = *
-   .byte chrQuote
-   .asc "..."
-   .byte chrCR,0
+   !byte chrQuote
+   !pet "..."
+   !byte chrCR,0
 
 checkStop = *
    jsr aceConStopkey
@@ -257,8 +259,8 @@ checkStop = *
    jmp die
 
    stoppedMsg = *
-   .asc "<Stopped>"
-   .byte chrCR,0
+   !pet "<Stopped>"
+   !byte chrCR,0
 
 bcode = *
    lda #true
@@ -319,10 +321,10 @@ openError = *
    jsr eputs
    rts
 openErrorMsg1 = *
-   .asc "ERROR: cannot open "
-   .byte chrQuote,0
+   !pet "ERROR: cannot open "
+   !byte chrQuote,0
 openErrorMsg2 = *
-   .byte chrQuote,chrCR,0
+   !byte chrQuote,chrCR,0
 
 outfileFileLen = work+0
 outfileExtLen  = work+1
@@ -412,15 +414,15 @@ getOutfile = *
    jmp eputchar
 
 outfileMsg = *
-   .asc "outputting to file "
-   .byte chrQuote,0
+   !pet "outputting to file "
+   !byte chrQuote,0
 outfileErrMsg1 = *
-   .asc "ERROR: cannot open "
-   .byte chrQuote,0
+   !pet "ERROR: cannot open "
+   !byte chrQuote,0
 outfileErrMsg2 = *
-   .byte chrQuote
-   .asc ", aborting!"
-   .byte chrCR,0
+   !byte chrQuote
+   !pet ", aborting!"
+   !byte chrCR,0
 
 bcodeSegment = *  ;( ) : isLastSeg
    ;** header line
@@ -450,27 +452,30 @@ bcodeSegment = *  ;( ) : isLastSeg
    ;** loop
    encodeNext = *
    jsr encodeLine
-   bcc +
+   bcc .bs1
    lda #true
    sta isLastSeg
    jmp encodeSegFinish
-+  bit linelimit
+.bs1:
+   bit linelimit
    bpl encodeNext
    inc linenum+0
-   bne +
+   bne .bs2
    inc linenum+1
-   bne +
+   bne .bs2
    inc linenum+2
-   bne +
+   bne .bs2
    inc linenum+3
-+  sec
+.bs2:
+   sec
    ldy #4
    ldx #0
--  lda linenum,x
+.bs3:
+   lda linenum,x
    sbc maxlines,x
    inx
    dey
-   bne -
+   bne .bs3
    bcc encodeNext
    lda #false
    sta isLastSeg
@@ -479,13 +484,15 @@ bcodeSegment = *  ;( ) : isLastSeg
    encodeSegFinish = *
    jsr crcFinish
    bit isLastSeg
-   bpl +
+   bpl .bs4
    lda #<bcodeEndMsg
    ldy #>bcodeEndMsg
-   jmp ++
-+  lda #<bcodeContinuedMsg
+   jmp .bs5
+.bs4:
+   lda #<bcodeContinuedMsg
    ldy #>bcodeContinuedMsg
-+  jsr trPuts
+.bs5:
+   jsr trPuts
    ldx #segnum
    jsr trPutnum
    lda #" "
@@ -501,16 +508,17 @@ bcodeSegment = *  ;( ) : isLastSeg
    rts
 
 bcodeHeaderMsg = *
-   .asc "--bcode-begin "
-   .byte 0
+   !pet "--bcode-begin "
+   !byte 0
 bcodeEndMsg = *
-   .asc "--bcode-end "
-   .byte 0
+   !pet "--bcode-end "
+   !byte 0
 bcodeContinuedMsg = *
-   .asc "--bcode-continued "
-   .byte 0
+   !pet "--bcode-continued "
+   !byte 0
 
-basenameStart .buf 1
+basenameStart = *
+   !fill 1
 basename = * ;( (zp)=inname ) : outBuf=outname, .X=basenameLen
    ldy #255
    sty basenameStart
@@ -663,7 +671,8 @@ encodeFourChars = *  ;( .X++=chunkpos, .Y++=linepos )
    inx
    rts
 
-base64Index .buf 1
+base64Index = *
+   !fill 1
 setBase64Table = *
    ldy #0
    ldx #0
@@ -672,7 +681,7 @@ setBase64Table = *
    beq +
    ldx #base64DescAsc-base64DescPet
 +  stx base64Index
--  ldx base64Index
+-- ldx base64Index
    lda base64DescPet+0,x
    beq +
    pha
@@ -691,9 +700,9 @@ setBase64Table = *
 +  rts
 
 base64DescPet = *
-   .byte "A",26,"a",26,"0",10,"+",1,"/",1,$00
+   !byte "A",26,"a",26,"0",10,"+",1,"/",1,$00
 base64DescAsc = *
-   .byte $41,26,$61,26,"0",10,"+",1,"/",1,$00
+   !byte $41,26,$61,26,"0",10,"+",1,"/",1,$00
 
 readChunk = *  ;( ) : .X=len
    ldx #0
@@ -822,7 +831,7 @@ crcFinish = *
 crcGen = *
    ;** generate CRC table at runtime
    ldy #0
--  ldx #0
+-- ldx #0
    sty crc+0
    stx crc+1
    stx crc+2
@@ -877,19 +886,22 @@ trPuts = *
 trPutchar = *
    ldx transTo
    cpx #trPetscii
-   beq +
+   beq .tp1
    cmp #chrCR
-   beq ++
+   beq .tp2
    jsr convPet2Asc
-+  ldx outfile
+.tp1:
+   ldx outfile
    jmp putc
-+  ldx transTo
+.tp2:
+   ldx transTo
    cpx #trAsciiLf
-   beq +
+   beq .tp3
    lda #chrCR
    ldx outfile
    jsr putc
-+  lda #chrLF
+.tp3:
+   lda #chrLF
    ldx outfile
    jmp putc
 
@@ -989,7 +1001,8 @@ putc = *
    lda #1
    ldy #0
    jmp write
-   putcBuffer .buf 1
+   putcBuffer = *
+      !fill 1
 
 getarg = *
    sty zp+1
@@ -1012,89 +1025,104 @@ getarg = *
    sta zp+1
    rts
 
-scanDigit    .buf 1
-scanSave     .buf 4
-scanTemp     .buf 1
-scanIndex    .buf 1
-scanAnything .buf 1
+scanDigit = *
+   !fill 1
+scanSave = *
+   !fill 4
+scanTemp = *
+   !fill 1
+scanIndex = *
+   !fill 1
+scanAnything = *
+   !fill 1
 
 scanNum = *  ;( (zp)=numStr, .Y=numIndex ) : .Y=scan, [scanVal]=num, .CS=err
    ldx #3
    lda #0
--  sta scanVal,x
+.sn1:
+   sta scanVal,x
    dex
-   bpl -
+   bpl .sn1
    lda #0
    sta scanAnything
--  lda (zp),y
+.sn2:
+   lda (zp),y
    cmp #" "
    bne scanNumNext
    iny
-   bne -
+   bne .sn2:
    sec
    rts
 
    scanNumNext = *
    lda (zp),y
    cmp #"0"
-   bcc +
+   bcc .sn3
    cmp #"9"+1
-   bcc ++
-+  lda scanAnything
+   bcc .sn4
+.sn3:
+   lda scanAnything
    beq scanError
    clc
    rts
-+  and #$0f
+.sn4:
+   and #$0f
    sta scanDigit
    lda #$ff
    sta scanAnything
    ;** times ten
    sty scanTemp
    ldx #3
--  lda scanVal,x
+.sn5:
+   lda scanVal,x
    sta scanSave,x
    dex
-   bpl -
+   bpl .sn5
    lda #2
    sta scanIndex
--  clc
-   ldy #4
-   ldx #0
--  rol scanVal,x
-   inx
-   dey
-   bne -
-   bcs scanError
-   dec scanIndex
-   bne --
+.sn6:
    clc
    ldy #4
    ldx #0
--  lda scanVal,x
+.sn7:
+   rol scanVal,x
+   inx
+   dey
+   bne .sn7
+   bcs scanError
+   dec scanIndex
+   bne .sn6
+   clc
+   ldy #4
+   ldx #0
+.sn8:
+   lda scanVal,x
    adc scanSave,x
    sta scanVal,x
    inx
    dey
-   bne -
+   bne .sn8
    bcs scanError
    clc
    ldy #4
    ldx #0
--  rol scanVal,x
+.sn9
+   rol scanVal,x
    inx
    dey
-   bne -
+   bne .sn9
    bcs scanError
    clc
    ldy #4
    ldx #0
    lda scanDigit
--  adc scanVal,x
+.sn10
+   adc scanVal,x
    sta scanVal,x
    lda #0
    inx
    dey
-   bne -
+   bne .sn10
    bcs scanError
 
    ldy scanTemp
