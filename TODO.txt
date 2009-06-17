@@ -3,7 +3,6 @@ Apps to convert to ACME format:
   ashelp.s
   fx.s
   term.s
-  tr.s
   vbm.s
   vbmpr.s
   z.s
@@ -23,6 +22,5 @@ System files to convert to ACME format:
   acevic.s
   acewin.s
   config.s
-  kernhead.s
   sh.s
  
